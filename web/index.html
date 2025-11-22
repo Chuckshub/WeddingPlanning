@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Our Wedding Registry</title>
+  <meta name="description" content="A modern wedding registry for our big day" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E💍%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Optional web font; safe to remove if you prefer system fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">💍</span>
+        <span class="brand-text">Alex & Jamie</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#story">Our Story</a></li>
+        <li><a href="#details">Details</a></li>
+        <li><a href="#registry" class="cta">Registry</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-label="Hero">
+      <div class="hero-inner">
+        <h1><span class="names">Alex & Jamie</span> <span class="amp">&</span> <span class="names">Forever</span></h1>
+        <p class="date">Saturday • June 14, 2026 • Austin, TX</p>
+        <a class="btn primary" href="#registry">View Registry</a>
+      </div>
+    </section>
+
+    <section id="story" class="section story">
+      <div class="container">
+        <h2>Our Story</h2>
+        <p class="muted">This is a short note about our journey so far. Replace with content from Firestore: settings.site.story.</p>
+      </div>
+    </section>
+
+    <section id="details" class="section details">
+      <div class="container grid-2">
+        <div>
+          <h3>Wedding Details</h3>
+          <ul class="details-list">
+            <li><strong>Date:</strong> <span data-bind="event.date">June 14, 2026</span></li>
+            <li><strong>Venue:</strong> <span data-bind="event.venue">The Greenhouse, Austin</span></li>
+            <li><strong>Time:</strong> <span data-bind="event.time">4:00 PM</span></li>
+          </ul>
+        </div>
+        <div class="note">
+          <p>All details above are placeholders. Hook these to Firestore doc settings/site.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="registry" class="section registry">
+      <div class="container">
+        <div class="section-header">
+          <h2>Registry</h2>
+          <div class="controls">
+            <label class="search">
+              <input id="search" type="search" placeholder="Search gifts…" aria-label="Search gifts" />
+            </label>
+            <select id="filter" aria-label="Filter by category">
+              <option value="all">All</option>
+              <option value="home">Home</option>
+              <option value="kitchen">Kitchen</option>
+              <option value="experience">Experiences</option>
+              <option value="honeymoon">Honeymoon</option>
+              <option value="charity">Charity</option>
+            </select>
+            <button id="sort" class="btn">Sort by Popularity</button>
+          </div>
+        </div>
+
+        <div id="gift-grid" class="gift-grid" aria-live="polite">
+          <!-- Cards rendered here -->
+        </div>
+
+        <div id="empty-state" class="empty hidden" role="status">
+          <p>No gifts match your search. Try a different filter.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Thank you for celebrating with us! — <span data-bind="settings.signature">Alex & Jamie</span></p>
+    </div>
+  </footer>
+
+  <!-- Gift Card Template (rendered by app.js) -->
+  <template id="gift-card-template">
+    <article class="card" data-gift-id="">
+      <div class="media skeleton" aria-hidden="true"></div>
+      <div class="content">
+        <h3 class="title">Gift Title</h3>
+        <p class="desc">Short description goes here. Replace with gift.description.</p>
+        <div class="meta">
+          <span class="category">Category</span>
+          <span class="price">$0</span>
+        </div>
+        <div class="progress">
+          <div class="bar"><span class="fill" style="width:0%"></span></div>
+          <div class="progress-text">0% funded</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary contribute">Contribute</button>
+          <button class="btn outline details">Details</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <!-- Contribute Modal -->
+  <dialog id="contribute-modal" class="modal">
+    <form method="dialog" class="modal-box" id="contribute-form">
+      <header class="modal-header">
+        <h3 id="modal-title">Contribute</h3>
+        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <div class="gift-brief">
+          <div class="thumb"></div>
+          <div>
+            <div class="gift-title">—</div>
+            <div class="gift-sub">—</div>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Name (optional)</span>
+          <input name="name" type="text" placeholder="Your name" />
+        </label>
+
+        <label class="field">
+          <span>Amount</span>
+          <div class="amount-group">
+            <span class="prefix">$</span>
+            <input name="amount" type="number" inputmode="decimal" min="1" step="1" required placeholder="50" />
+          </div>
+          <small class="muted">This will create a pledge in Firestore (collection: pledges). Payment processing is out of scope here.</small>
+        </label>
+
+        <label class="field">
+          <span>Message (optional)</span>
+          <textarea name="message" rows="3" placeholder="A short note"></textarea>
+        </label>
+      </div>
+      <footer class="modal-footer">
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" id="confirm-contribute" value="default">Confirm Pledge</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
