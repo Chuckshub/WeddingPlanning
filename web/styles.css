@@ -112,3 +112,18 @@ select{background:var(--surface);border:1px solid #20232b;color:var(--text);padd
 .skeleton{position:relative;overflow:hidden}
 .skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);transform:translateX(-100%);animation:shimmer 1.3s infinite}
 @keyframes shimmer{100%{transform:translateX(100%)}}
+
+
+/* Guest planner: Tabulator integration tweaks */
+.guest-table .tabulator{border:1px solid #232733;border-radius:12px;box-shadow:var(--shadow)}
+.guest-table .tabulator-header{font-weight:600}
+.guest-table .tabulator-row.tabulator-group{background:color-mix(in srgb, var(--text) 6%, transparent)}
+
+/* Tighten up hero spacing and add subtle flourish */
+.hero{min-height:50vh}
+.hero h1{letter-spacing:.5px}
+.hero .date{opacity:.85}
+
+/* Minor control alignment */
+.section .controls .file{position:relative;overflow:hidden}
+.section .controls .file input{position:absolute;inset:0;opacity:0;cursor:pointer}

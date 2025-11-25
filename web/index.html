@@ -11,18 +11,21 @@
   <!-- Optional web font; safe to remove if you prefer system fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
+  <!-- Tabulator (open-source table library) for the guest planner -->
+  <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@5.6.0/dist/css/tabulator_midnight.min.css" />
+  <script src="https://unpkg.com/tabulator-tables@5.6.0/dist/js/tabulator.min.js"></script>
 </head>
 <body>
   <header class="site-header">
     <nav class="nav">
       <div class="brand">
         <span class="logo" aria-hidden="true">💍</span>
-        <span class="brand-text">Alex & Jamie</span>
+        <span class="brand-text">Mandy & Charlie</span>
       </div>
       <ul class="nav-links">
         <li><a href="#story">Our Story</a></li>
         <li><a href="#details">Details</a></li>
-        <li><a href="#registry" class="cta">Registry</a></li>
+        <li><a href="#planner" class="cta">Guest Planner</a></li>
       </ul>
     </nav>
   </header>
@@ -30,9 +33,9 @@
   <main>
     <section class="hero" aria-label="Hero">
       <div class="hero-inner">
-        <h1><span class="names">Alex & Jamie</span> <span class="amp">&</span> <span class="names">Forever</span></h1>
+        <h1><span class="names">Mandy</span> <span class="amp">&</span> <span class="names">Charlie</span></h1>
         <p class="date">Saturday • June 14, 2026 • Austin, TX</p>
-        <a class="btn primary" href="#registry">View Registry</a>
+        <a class="btn primary" href="#planner">Open Guest Planner</a>
       </div>
     </section>
 
@@ -59,108 +62,88 @@
       </div>
     </section>
 
-    <section id="registry" class="section registry">
+    <section id="planner" class="section registry">
       <div class="container">
         <div class="section-header">
-          <h2>Registry</h2>
+          <h2>Guest Planner</h2>
           <div class="controls">
-            <label class="search">
-              <input id="search" type="search" placeholder="Search gifts…" aria-label="Search gifts" />
+            <button id="add-guest" class="btn primary">Add guest</button>
+            <button id="export-guests" class="btn">Export CSV</button>
+            <label class="btn outline file">
+              Import CSV
+              <input id="import-guests" type="file" accept="text/csv" hidden />
             </label>
-            <select id="filter" aria-label="Filter by category">
-              <option value="all">All</option>
-              <option value="home">Home</option>
-              <option value="kitchen">Kitchen</option>
-              <option value="experience">Experiences</option>
-              <option value="honeymoon">Honeymoon</option>
-              <option value="charity">Charity</option>
-            </select>
-            <button id="sort" class="btn">Sort by Popularity</button>
+            <label style="display:flex;align-items:center;gap:6px">
+              <input id="group-by-family" type="checkbox" /> Group by family
+            </label>
           </div>
         </div>
 
-        <div id="gift-grid" class="gift-grid" aria-live="polite">
-          <!-- Cards rendered here -->
-        </div>
-
-        <div id="empty-state" class="empty hidden" role="status">
-          <p>No gifts match your search. Try a different filter.</p>
-        </div>
+        <div id="guest-table" class="guest-table" aria-live="polite"></div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>Thank you for celebrating with us! — <span data-bind="settings.signature">Alex & Jamie</span></p>
+      <p>Thank you for celebrating with us! — <span data-bind="settings.signature">Mandy & Charlie</span></p>
     </div>
   </footer>
 
-  <!-- Gift Card Template (rendered by app.js) -->
-  <template id="gift-card-template">
-    <article class="card" data-gift-id="">
-      <div class="media skeleton" aria-hidden="true"></div>
-      <div class="content">
-        <h3 class="title">Gift Title</h3>
-        <p class="desc">Short description goes here. Replace with gift.description.</p>
-        <div class="meta">
-          <span class="category">Category</span>
-          <span class="price">$0</span>
-        </div>
-        <div class="progress">
-          <div class="bar"><span class="fill" style="width:0%"></span></div>
-          <div class="progress-text">0% funded</div>
-        </div>
-        <div class="actions">
-          <button class="btn primary contribute">Contribute</button>
-          <button class="btn outline details">Details</button>
-        </div>
-      </div>
-    </article>
-  </template>
-
-  <!-- Contribute Modal -->
-  <dialog id="contribute-modal" class="modal">
-    <form method="dialog" class="modal-box" id="contribute-form">
+  <!-- Add/Edit Guest Modal -->
+  <dialog id="guest-modal" class="modal">
+    <form method="dialog" class="modal-box" id="guest-form">
       <header class="modal-header">
-        <h3 id="modal-title">Contribute</h3>
+        <h3 id="modal-title">Add guest</h3>
         <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
       </header>
       <div class="modal-body">
-        <div class="gift-brief">
-          <div class="thumb"></div>
-          <div>
-            <div class="gift-title">—</div>
-            <div class="gift-sub">—</div>
-          </div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Full name</span>
+            <input name="name" required placeholder="Guest name" />
+          </label>
+          <label class="field">
+            <span>Side</span>
+            <select name="side">
+              <option value="bride">Bride</option>
+              <option value="groom">Groom</option>
+              <option value="both">Both</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Relationship</span>
+            <input name="relationship" placeholder="Friend, Family, Coworker…" />
+          </label>
+          <label class="field">
+            <span>Family name (for grouping)</span>
+            <input name="familyName" placeholder="e.g., Smith" />
+          </label>
+          <label class="field">
+            <span>Table #</span>
+            <input name="tableNumber" type="number" min="1" placeholder="1" />
+          </label>
+          <label class="field">
+            <span>Plus ones allowed</span>
+            <input name="plusOnesAllowed" type="number" min="0" value="0" />
+          </label>
+          <label class="field" style="grid-column:1/-1">
+            <span>Plus one name (if any)</span>
+            <input name="plusOneName" placeholder="Name of plus one" />
+          </label>
+          <label class="field" style="grid-column:1/-1">
+            <span>Notes</span>
+            <textarea name="notes" rows="2" placeholder="Dietary needs, seating notes, etc."></textarea>
+          </label>
         </div>
-
-        <label class="field">
-          <span>Name (optional)</span>
-          <input name="name" type="text" placeholder="Your name" />
-        </label>
-
-        <label class="field">
-          <span>Amount</span>
-          <div class="amount-group">
-            <span class="prefix">$</span>
-            <input name="amount" type="number" inputmode="decimal" min="1" step="1" required placeholder="50" />
-          </div>
-          <small class="muted">This will create a pledge in Firestore (collection: pledges). Payment processing is out of scope here.</small>
-        </label>
-
-        <label class="field">
-          <span>Message (optional)</span>
-          <textarea name="message" rows="3" placeholder="A short note"></textarea>
-        </label>
       </div>
       <footer class="modal-footer">
         <button class="btn" value="cancel">Cancel</button>
-        <button class="btn primary" id="confirm-contribute" value="default">Confirm Pledge</button>
+        <button class="btn primary" id="save-guest" value="default">Save</button>
       </footer>
     </form>
   </dialog>
 
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./planner.js"></script>
 </body>
 </html>
