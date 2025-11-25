@@ -1,4 +1,55 @@
+// density control
+const densitySel = document.getElementById('density');
+const tableWrap = document.querySelector('#guest-table');
+function applyDensity(){
+  const val = densitySel?.value || 'cozy';
+  tableWrap.classList.toggle('table-density-compact', val==='compact');
+  tableWrap.classList.toggle('table-density-cozy', val!=='compact');
+}
+if (densitySel){
+  densitySel.addEventListener('change', applyDensity);
+  applyDensity();
+}
 // planner.js — Wedding Guest Planner (bright theme) using Tabulator
+// Extra: analytics stats and saved views
+const kpi = {
+  total: document.getElementById('kpi-total'),
+  families: document.getElementById('kpi-families'),
+  plus: document.getElementById('kpi-plus'),
+  yes: document.getElementById('kpi-yes'),
+  no: document.getElementById('kpi-no'),
+};
+
+function computeStats(data){
+  const total = data.length;
+  const families = new Set(data.map(d => (d.familyName||'').trim()).filter(Boolean)).size;
+  const plus = data.reduce((s,d)=> s + (Number(d.plusOnesAllowed||0) > 0 ? 1 : 0), 0);
+  const yes = data.filter(d => d.rsvpStatus==='yes').length;
+  const pendingNo = total - yes;
+  if (kpi.total) kpi.total.textContent = total;
+  if (kpi.families) kpi.families.textContent = families;
+  if (kpi.plus) kpi.plus.textContent = plus;
+  if (kpi.yes) kpi.yes.textContent = yes;
+  if (kpi.no) kpi.no.textContent = pendingNo;
+}
+
+function refreshKPIs(){ computeStats(table.getData()); }
+
+// Saved views
+const viewChips = Array.from(document.querySelectorAll('.views .chip'));
+viewChips.forEach(ch => ch.addEventListener('click', () => {
+  viewChips.forEach(c=>c.classList.remove('active'));
+  ch.classList.add('active');
+  const v = ch.dataset.view;
+  switch(v){
+    case 'bride': table.setFilter('side', '=', 'bride'); break;
+    case 'groom': table.setFilter('side', '=', 'groom'); break;
+    case 'plus': table.setFilter((row)=> Number(row.getData().plusOnesAllowed||0) > 0 ); break;
+    case 'unassigned': table.setFilter((row)=> Number(row.getData().tableNumber||0) === 0 ); break;
+    default: table.clearFilter();
+  }
+  refreshKPIs();
+}));
 
 const $ = (s, r=document) => r.querySelector(s);
 
@@ -24,9 +75,14 @@ let guests = [
 let table = new Tabulator(ui.table, {
   height: 600,
   data: guests,
-  layout: 'fitColumns',
+  layout: 'fitDataStretch',
   reactiveData: true,
   placeholder: 'No guests yet — add your first guest!',
+  persistenceMode: true,
+  persistenceID: 'guest-planner-v2',
+  movableColumns: true,
+  clipboard: true,
+  columnDefaults:{ headerHozAlign:'left', headerSort:true },
   columns: [
     { title: 'Name', field: 'name', editor:'input', headerFilter:'input', widthGrow:2 },
     { title: 'Side', field: 'side', editor:'select', headerFilter:true, editorParams:{values:{bride:'Bride', groom:'Groom', both:'Both'}}, width:120 },
@@ -47,6 +103,7 @@ let table = new Tabulator(ui.table, {
     },
   ],
 });
+refreshKPIs();
 
 function applyGrouping(){
   if (ui.groupTable.checked) { table.setGroupBy('tableNumber'); return; }
@@ -93,6 +150,7 @@ ui.form.addEventListener('submit', (e) => {
     plusOneName: (p.plusOneName||'').trim(),
     notes: (p.notes||'').trim(),
   };
+  refreshKPIs();
   if (editId){
     const row = table.getRow(editId);
     if (row) row.update(record);
@@ -120,6 +178,7 @@ ui.import.addEventListener('change', async (e) => {
     plusOneName: r.plusOneName || r['plusOne'] || '',
     notes: r.notes || '',
   }));
+  refreshKPIs();
   table.addData(mapped, true);
   e.target.value = '';
 });

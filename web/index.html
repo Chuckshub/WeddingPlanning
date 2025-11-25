@@ -28,18 +28,38 @@
   </header>
 
   <main>
-    <section class="hero hero-bright" aria-label="Hero">
-      <div class="hero-inner container">
-        <h1 class="serif">Guest Planner</h1>
-        <p class="lead">Plan seating, track families and relationships, manage plus-ones — all in one place.</p>
-        <div class="controls">
-          <button id="add-guest" class="btn primary">Add guest</button>
-          <button id="export-guests" class="btn">Export CSV</button>
-          <label class="btn outline file">
-            Import CSV
-            <input id="import-guests" type="file" accept="text/csv" hidden />
-          </label>
-          <label class="inline">
+    <!-- Analyst toolbar with KPI chips and controls -->
+    <section class="toolbar section">
+      <div class="container">
+        <div class="toolbar-row">
+          <div class="kpis">
+            <div class="kpi"><div class="kpi-label">Guests</div><div class="kpi-value" id="kpi-total">0</div></div>
+            <div class="kpi"><div class="kpi-label">Families</div><div class="kpi-value" id="kpi-families">0</div></div>
+            <div class="kpi"><div class="kpi-label">Plus‑Ones</div><div class="kpi-value" id="kpi-plus">0</div></div>
+            <div class="kpi"><div class="kpi-label">RSVP ✓</div><div class="kpi-value" id="kpi-yes">0</div></div>
+            <div class="kpi"><div class="kpi-label">No / Pending</div><div class="kpi-value" id="kpi-no">0</div></div>
+          </div>
+          <div class="tools">
+            <button id="add-guest" class="btn primary">Add guest</button>
+            <button id="export-guests" class="btn">Export</button>
+            <label class="btn outline file">
+              Import CSV
+              <input id="import-guests" type="file" accept="text/csv" hidden />
+            </label>
+            <select id="density" class="density">
+              <option value="cozy">Cozy</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+        </div>
+        <div class="views">
+          <span class="views-label">Saved views:</span>
+          <button data-view="all" class="chip active">All</button>
+          <button data-view="bride" class="chip">Bride side</button>
+          <button data-view="groom" class="chip">Groom side</button>
+          <button data-view="plus" class="chip">Plus‑ones</button>
+          <button data-view="unassigned" class="chip">No table</button>
+          <label class="inline" style="margin-left:auto">
             <input id="group-by" type="checkbox" /> Group by family
           </label>
           <label class="inline">
@@ -52,7 +72,7 @@
     <section class="planner section">
       <div class="container">
         <div id="guest-table" class="guest-table" aria-live="polite"></div>
-        <p class="hint">Tip: Click a column header to sort. Use the header search boxes to filter.</p>
+        <p class="hint">Tip: Shift‑click to multi‑sort. Use the column menu to show/hide fields.</p>
       </div>
     </section>
   </main>
@@ -94,10 +114,10 @@
           </label>
           <label class="field">
             <span>Table #</span>
-            <input name="tableNumber" type="number" min="1" placeholder="1" />
+            <input name="tableNumber" type="number" min="0" placeholder="0 = unassigned" />
           </label>
           <label class="field">
-            <span>Plus-ones allowed</span>
+            <span>Plus‑ones allowed</span>
             <input name="plusOnesAllowed" type="number" min="0" value="0" />
           </label>
           <label class="field full">
