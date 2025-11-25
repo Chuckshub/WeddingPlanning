@@ -1,0 +1,38 @@
+@import url('../styles.css');
+
+main{padding:24px 0}
+
+.auth-view{display:grid;place-items:center;min-height:70vh}
+.auth-card{background:var(--surface);border:1px solid #232733;border-radius:14px;box-shadow:var(--shadow);padding:24px;max-width:520px;width:calc(100% - 24px)}
+.auth-actions{display:grid;gap:12px}
+.auth-form{display:grid;gap:10px}
+.auth-form input{background:var(--surface-2);border:1px solid #242a35;color:var(--text);padding:10px;border-radius:10px}
+.auth-form .row{display:flex;gap:10px}
+.divider{opacity:.6;text-align:center}
+
+.site-header .avatar{width:28px;height:28px;border-radius:999px;border:1px solid #333;object-fit:cover;margin-right:8px}
+.user{display:flex;align-items:center;gap:8px}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.toolbar .left,.toolbar .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toolbar input, .toolbar select{background:var(--surface);border:1px solid #20232b;color:var(--text);padding:10px;border-radius:10px}
+
+.table{border:1px solid #232733;border-radius:12px;overflow:hidden}
+.thead{background:color-mix(in srgb, var(--text) 6%, transparent)}
+.tr{display:grid;grid-template-columns:2fr 2fr 1fr 1fr .7fr 1.2fr 1.6fr;gap:8px;padding:10px 12px;align-items:center}
+.th{font-weight:700}
+.tbody .tr{border-top:1px solid #20232b}
+.td .rsvp-select{width:100%;background:var(--surface-2);color:var(--text);border:1px solid #242a35;border-radius:8px;padding:8px}
+.td .btn{padding:6px 10px}
+.btn.danger{background:linear-gradient(180deg, var(--danger), color-mix(in srgb, var(--danger) 40%, #000));border:0}
+
+.modal{border:0;border-radius:16px;max-width:720px;width:calc(100% - 24px);background:var(--surface-2);color:var(--text)}
+.modal::backdrop{background:rgba(0,0,0,.6)}
+.modal-box{padding:0;margin:0}
+.modal-header,.modal-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #20232b}
+.modal-footer{border-bottom:0;border-top:1px solid #20232b}
+.modal-body{padding:16px;display:grid;gap:12px}
+.modal-body.grid{grid-template-columns:1fr 1fr}
+.field{display:grid;gap:6px}
+.field.full{grid-column:1 / -1}
+.field input,.field textarea,.field select{background:var(--surface);color:var(--text);border:1px solid #242a35;border-radius:10px;padding:10px}

@@ -80,3 +80,54 @@ for (const g of seed) await addDoc(collection(db,'gifts'), g);
 - Payment processing is intentionally excluded; the "Confirm Pledge" creates a `pledges` doc and increments `gifts.amountFunded`.
 - Styling uses modern CSS only.
 - You can host this folder on any static host (Firebase Hosting, GitHub Pages, etc.).
+
+
+---
+
+## Invite Tracker (admin) — setup
+
+Location: `web/tracker/`
+
+What it does
+- Secure admin dashboard to manage invites stored in Firestore.
+- Firebase Authentication (Google + Email/Password) gating.
+- Live list with search/filters, add/edit, RSVP status updates, CSV import/export.
+
+Steps
+1) Ensure `web/firebase-config.js` exists and points to your Firebase project.
+2) In Firebase Console:
+   - Enable Authentication providers: Google, Email/Password.
+   - Create Firestore database.
+3) Firestore rules (draft — limit to admins only). This variant uses an `admins` collection with documents named by admin UID:
+
+```js
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /invites/{id} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    match /admins/{uid} {
+      // bootstrap: allow a specific email to create their own admin doc once
+      allow create: if request.auth != null && request.auth.token.email.matches(".*@example.com$");
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false; // tighten as desired
+    }
+  }
+}
+```
+
+- To bootstrap, manually add your UID as a doc ID in `admins` collection via Firebase Console.
+- Replace the email regex above with your email domain or remove that block once bootstrapped.
+
+CSV format
+- Headers accepted: `name,email,side,plusOnesAllowed,partySize,rsvpStatus,tags,notes`
+- Tags may be comma- or semicolon-separated; importer handles both.
+
+Notes
+- This is an admin-only tool; guest RSVP portal is not included here. We can add `/web/rsvp/` next using invite codes.

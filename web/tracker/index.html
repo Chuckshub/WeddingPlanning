@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Invite Tracker — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <div class="brand"><span class="logo">💌</span><span class="brand-text">Invite Tracker</span></div>
+      <div class="user" id="user-panel" hidden>
+        <img id="user-photo" class="avatar" alt="" />
+        <span id="user-name"></span>
+        <button id="sign-out" class="btn">Sign out</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Auth view -->
+    <section id="auth-view" class="auth-view">
+      <div class="card auth-card">
+        <h1>Admin sign in</h1>
+        <p class="muted">Use Google or email/password. Only authorized admins will see data.</p>
+        <div class="auth-actions">
+          <button id="google-signin" class="btn primary">Continue with Google</button>
+          <div class="divider">or</div>
+          <form id="email-form" class="auth-form">
+            <input type="email" name="email" placeholder="Email" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <div class="row">
+              <button class="btn" data-action="signup">Sign up</button>
+              <button class="btn outline" data-action="signin" type="button">Sign in</button>
+            </div>
+          </form>
+        </div>
+        <details class="note">
+          <summary>Setup notes</summary>
+          <ul>
+            <li>Copy web/firebase-config.example.js to web/firebase-config.js and set your project keys.</li>
+            <li>Enable Auth providers: Google and Email/Password in Firebase Console.</li>
+            <li>Configure Firestore rules to restrict access to admins (see README).</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+
+    <!-- App view -->
+    <section id="app-view" class="app-view" hidden>
+      <div class="container">
+        <div class="toolbar">
+          <div class="left">
+            <input id="search" type="search" placeholder="Search name/email/tags…" />
+            <select id="filter-rsvp">
+              <option value="all">All RSVPs</option>
+              <option value="yes">RSVP: Yes</option>
+              <option value="no">RSVP: No</option>
+              <option value="maybe">RSVP: Maybe</option>
+              <option value="none">No response</option>
+            </select>
+            <select id="filter-side">
+              <option value="all">All sides</option>
+              <option value="bride">Bride</option>
+              <option value="groom">Groom</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+          <div class="right">
+            <button id="add-guest" class="btn primary">Add guest</button>
+            <label class="btn outline file">
+              Import CSV
+              <input id="csv-file" type="file" accept="text/csv" hidden />
+            </label>
+            <button id="export" class="btn">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="table" id="table" role="table" aria-label="Guest list">
+          <div class="thead" role="rowgroup">
+            <div class="tr" role="row">
+              <div class="th">Name</div>
+              <div class="th">Email</div>
+              <div class="th">Side</div>
+              <div class="th">RSVP</div>
+              <div class="th">Party</div>
+              <div class="th">Tags</div>
+              <div class="th">Actions</div>
+            </div>
+          </div>
+          <div class="tbody" id="tbody" role="rowgroup"></div>
+        </div>
+
+        <p id="empty" class="muted" hidden>No guests yet. Click “Add guest” or import a CSV.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <dialog id="guest-modal" class="modal">
+    <form method="dialog" class="modal-box" id="guest-form">
+      <header class="modal-header">
+        <h3 id="guest-modal-title">Add guest</h3>
+        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body grid">
+        <label class="field">
+          <span>Name</span>
+          <input name="name" required placeholder="Full name" />
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input name="email" type="email" placeholder="name@example.com" />
+        </label>
+        <label class="field">
+          <span>Side</span>
+          <select name="side">
+            <option value="bride">Bride</option>
+            <option value="groom">Groom</option>
+            <option value="both">Both</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Plus-ones allowed</span>
+          <input name="plusOnesAllowed" type="number" min="0" value="0" />
+        </label>
+        <label class="field full">
+          <span>Tags (comma separated)</span>
+          <input name="tags" placeholder="family, work, college" />
+        </label>
+        <label class="field full">
+          <span>Notes</span>
+          <textarea name="notes" rows="3" placeholder="Dietary needs, seating, etc."></textarea>
+        </label>
+      </div>
+      <footer class="modal-footer">
+        <button class="btn" value="cancel">Cancel</button>
+        <button class="btn primary" id="save-guest" value="default">Save</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <template id="row-template">
+    <div class="tr" role="row" data-id="">
+      <div class="td name">—</div>
+      <div class="td email">—</div>
+      <div class="td side">—</div>
+      <div class="td rsvp">
+        <select class="rsvp-select">
+          <option value="none">None</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+          <option value="maybe">Maybe</option>
+        </select>
+      </div>
+      <div class="td party">0</div>
+      <div class="td tags">—</div>
+      <div class="td actions">
+        <button class="btn outline edit">Edit</button>
+        <button class="btn danger delete">Delete</button>
+      </div>
+    </div>
+  </template>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
