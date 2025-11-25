@@ -3,98 +3,71 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Our Wedding Registry</title>
-  <meta name="description" content="A modern wedding registry for our big day" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E💍%3C/text%3E%3C/svg%3E" />
+  <title>Mandy & Charlie — Guest Planner</title>
+  <meta name="description" content="A bright, wedding-themed guest planner for Mandy & Charlie." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E💒%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Optional web font; safe to remove if you prefer system fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
-  <!-- Tabulator (open-source table library) for the guest planner -->
-  <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@5.6.0/dist/css/tabulator_midnight.min.css" />
+  <!-- Tabulator (open-source table library) for the guest planner (light theme) -->
+  <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@5.6.0/dist/css/tabulator.min.css" />
   <script src="https://unpkg.com/tabulator-tables@5.6.0/dist/js/tabulator.min.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <nav class="nav">
+  <header class="site-header light">
+    <nav class="nav container">
       <div class="brand">
-        <span class="logo" aria-hidden="true">💍</span>
-        <span class="brand-text">Mandy & Charlie</span>
+        <span class="logo" aria-hidden="true">💐</span>
+        <span class="brand-text serif">Mandy & Charlie</span>
       </div>
-      <ul class="nav-links">
-        <li><a href="#story">Our Story</a></li>
-        <li><a href="#details">Details</a></li>
-        <li><a href="#planner" class="cta">Guest Planner</a></li>
-      </ul>
+      <div class="nav-aux">
+        <span class="date serif" aria-label="Wedding date">June 14, 2026 • Austin, TX</span>
+      </div>
     </nav>
   </header>
 
   <main>
-    <section class="hero" aria-label="Hero">
-      <div class="hero-inner">
-        <h1><span class="names">Mandy</span> <span class="amp">&</span> <span class="names">Charlie</span></h1>
-        <p class="date">Saturday • June 14, 2026 • Austin, TX</p>
-        <a class="btn primary" href="#planner">Open Guest Planner</a>
+    <section class="hero hero-bright" aria-label="Hero">
+      <div class="hero-inner container">
+        <h1 class="serif">Guest Planner</h1>
+        <p class="lead">Plan seating, track families and relationships, manage plus-ones — all in one place.</p>
+        <div class="controls">
+          <button id="add-guest" class="btn primary">Add guest</button>
+          <button id="export-guests" class="btn">Export CSV</button>
+          <label class="btn outline file">
+            Import CSV
+            <input id="import-guests" type="file" accept="text/csv" hidden />
+          </label>
+          <label class="inline">
+            <input id="group-by" type="checkbox" /> Group by family
+          </label>
+          <label class="inline">
+            <input id="group-by-table" type="checkbox" /> Group by table
+          </label>
+        </div>
       </div>
     </section>
 
-    <section id="story" class="section story">
+    <section class="planner section">
       <div class="container">
-        <h2>Our Story</h2>
-        <p class="muted">This is a short note about our journey so far. Replace with content from Firestore: settings.site.story.</p>
-      </div>
-    </section>
-
-    <section id="details" class="section details">
-      <div class="container grid-2">
-        <div>
-          <h3>Wedding Details</h3>
-          <ul class="details-list">
-            <li><strong>Date:</strong> <span data-bind="event.date">June 14, 2026</span></li>
-            <li><strong>Venue:</strong> <span data-bind="event.venue">The Greenhouse, Austin</span></li>
-            <li><strong>Time:</strong> <span data-bind="event.time">4:00 PM</span></li>
-          </ul>
-        </div>
-        <div class="note">
-          <p>All details above are placeholders. Hook these to Firestore doc settings/site.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="planner" class="section registry">
-      <div class="container">
-        <div class="section-header">
-          <h2>Guest Planner</h2>
-          <div class="controls">
-            <button id="add-guest" class="btn primary">Add guest</button>
-            <button id="export-guests" class="btn">Export CSV</button>
-            <label class="btn outline file">
-              Import CSV
-              <input id="import-guests" type="file" accept="text/csv" hidden />
-            </label>
-            <label style="display:flex;align-items:center;gap:6px">
-              <input id="group-by-family" type="checkbox" /> Group by family
-            </label>
-          </div>
-        </div>
-
         <div id="guest-table" class="guest-table" aria-live="polite"></div>
+        <p class="hint">Tip: Click a column header to sort. Use the header search boxes to filter.</p>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer light">
     <div class="container">
-      <p>Thank you for celebrating with us! — <span data-bind="settings.signature">Mandy & Charlie</span></p>
+      <p class="muted">Made with love for Mandy & Charlie.</p>
     </div>
   </footer>
 
   <!-- Add/Edit Guest Modal -->
-  <dialog id="guest-modal" class="modal">
+  <dialog id="guest-modal" class="modal light">
     <form method="dialog" class="modal-box" id="guest-form">
       <header class="modal-header">
-        <h3 id="modal-title">Add guest</h3>
+        <h3 id="modal-title" class="serif">Add guest</h3>
         <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
       </header>
       <div class="modal-body">
@@ -124,14 +97,14 @@
             <input name="tableNumber" type="number" min="1" placeholder="1" />
           </label>
           <label class="field">
-            <span>Plus ones allowed</span>
+            <span>Plus-ones allowed</span>
             <input name="plusOnesAllowed" type="number" min="0" value="0" />
           </label>
-          <label class="field" style="grid-column:1/-1">
+          <label class="field full">
             <span>Plus one name (if any)</span>
             <input name="plusOneName" placeholder="Name of plus one" />
           </label>
-          <label class="field" style="grid-column:1/-1">
+          <label class="field full">
             <span>Notes</span>
             <textarea name="notes" rows="2" placeholder="Dietary needs, seating notes, etc."></textarea>
           </label>
