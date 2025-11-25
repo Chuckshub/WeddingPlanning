@@ -1,5 +1,5 @@
-// Invite Tracker — Admin dashboard with Firebase Auth + Firestore
-// Works after you create web/firebase-config.js and enable Auth + Firestore in Firebase Console
+// Invite Tracker — Admin dashboard (static demo mode)
+// Firebase disabled for public preview; switches to in-memory data.
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
@@ -35,81 +35,10 @@ const state = {
   editId: null,
 };
 
-// Load Firebase if config is available
-let firebaseConfig = null;
-try {
-  const mod = await import('../firebase-config.js');
-  firebaseConfig = mod.firebaseConfig;
-} catch(err) {
-  console.warn('Missing firebase-config.js. Using demo mode (no backend).');
-}
-
-let app, auth, db, provider, firestore;
-if (firebaseConfig) {
-  const [{ initializeApp }, { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut: fbSignOut, createUserWithEmailAndPassword, signInWithEmailAndPassword }, { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp }]
-    = await Promise.all([
-      import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js'),
-      import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js'),
-      import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js'),
-    ]);
-
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  provider = new GoogleAuthProvider();
-  firestore = { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp };
-
-  // Auth wiring
-  ui.googleBtn?.addEventListener('click', async () => {
-    try { await signInWithPopup(auth, provider); } catch(err) { alert(err.message); }
-  });
-
-  ui.emailForm?.addEventListener('submit', (e) => e.preventDefault());
-  ui.emailForm?.querySelector('[data-action="signup"]').addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = ui.emailForm.email.value.trim();
-    const password = ui.emailForm.password.value.trim();
-    try { await createUserWithEmailAndPassword(auth, email, password); } catch(err) { alert(err.message); }
-  });
-  ui.emailForm?.querySelector('[data-action="signin"]').addEventListener('click', async (e) => {
-    const email = ui.emailForm.email.value.trim();
-    const password = ui.emailForm.password.value.trim();
-    try { await signInWithEmailAndPassword(auth, email, password); } catch(err) { alert(err.message); }
-  });
-
-  onAuthStateChanged(auth, (user) => {
-    state.user = user;
-    if (user) {
-      ui.userPanel.hidden = false;
-      ui.userName.textContent = user.displayName || user.email || 'Admin';
-      if (user.photoURL) { ui.userPhoto.src = user.photoURL; ui.userPhoto.hidden = false; }
-      else ui.userPhoto.hidden = true;
-      ui.authView.hidden = true;
-      ui.appView.hidden = false;
-      subscribeInvites();
-    } else {
-      ui.userPanel.hidden = true;
-      ui.appView.hidden = true;
-      ui.authView.hidden = false;
-      teardownInvites();
-    }
-  });
-
-  ui.signOut?.addEventListener('click', () => fbSignOut(auth));
-}
-
-// Firestore invites subscription
-let unsub = null;
-function subscribeInvites(){
-  if (!db) return; // demo mode skip
-  const { collection, onSnapshot } = firestore;
-  const ref = collection(db, 'invites');
-  unsub = onSnapshot(ref, (snap) => {
-    state.invites = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    applyFilters();
-  });
-}
-function teardownInvites(){ if (unsub) { unsub(); unsub = null; } }
+// Static demo mode: no Firebase imports, no auth.
+let db = null;
+function subscribeInvites(){ /* no-op in demo */ }
+function teardownInvites(){ /* no-op */ }
 
 // UI rendering
 function renderRows(list){
@@ -165,13 +94,14 @@ function openGuestModal(guest){
   ui.guestModal.showModal();
 }
 
-ui.guestForm?.addEventListener('submit', async (e) => {
+ui.guestForm?.addEventListener('submit', (e) => {
   e.preventDefault();
   const form = new FormData(ui.guestForm);
   const payload = {
-    name: form.get('name').trim(),
+    id: state.editId || `local-${Date.now()}`,
+    name: String(form.get('name')||'').trim(),
     email: String(form.get('email')||'').trim() || null,
-    side: form.get('side') || 'bride',
+    side: String(form.get('side')||'bride'),
     plusOnesAllowed: Number(form.get('plusOnesAllowed')||0),
     tags: String(form.get('tags')||'').split(',').map(s => s.trim()).filter(Boolean),
     notes: String(form.get('notes')||'').trim() || null,
@@ -179,40 +109,30 @@ ui.guestForm?.addEventListener('submit', async (e) => {
     rsvpStatus: 'none',
     updatedAt: Date.now(),
   };
-  try {
-    if (!db) throw new Error('No Firebase configured');
-    const { addDoc, updateDoc, collection, doc, serverTimestamp } = firestore;
-    if (state.editId){
-      await updateDoc(doc(db, 'invites', state.editId), { ...payload, updatedAt: serverTimestamp() });
-    } else {
-      await addDoc(collection(db, 'invites'), { ...payload, createdAt: serverTimestamp() });
-    }
-    ui.guestModal.close();
-    ui.guestForm.reset();
-  } catch(err) {
-    alert('Failed to save guest: ' + err.message);
+  if (state.editId){
+    const idx = state.invites.findIndex(g => g.id === state.editId);
+    if (idx >= 0) state.invites[idx] = { ...state.invites[idx], ...payload };
+  } else {
+    state.invites.unshift(payload);
   }
+  state.editId = null;
+  ui.guestModal.close();
+  ui.guestForm.reset();
+  applyFilters();
 });
 
-async function updateRSVP(id, value){
-  try {
-    if (!db) throw new Error('No Firebase configured');
-    const { updateDoc, doc, serverTimestamp } = firestore;
-    await updateDoc(doc(db, 'invites', id), { rsvpStatus: value, respondedAt: value!=='none' ? serverTimestamp() : null });
-  } catch(err) {
-    alert('Failed to update RSVP: ' + err.message);
+function updateRSVP(id, value){
+  const idx = state.invites.findIndex(g => g.id === id);
+  if (idx >= 0){
+    state.invites[idx] = { ...state.invites[idx], rsvpStatus: value, respondedAt: Date.now() };
+    applyFilters();
   }
 }
 
-async function deleteGuest(id){
+function deleteGuest(id){
   if (!confirm('Delete this guest?')) return;
-  try {
-    if (!db) throw new Error('No Firebase configured');
-    const { deleteDoc, doc } = firestore;
-    await deleteDoc(doc(db, 'invites', id));
-  } catch(err) {
-    alert('Failed to delete: ' + err.message);
-  }
+  state.invites = state.invites.filter(g => g.id !== id);
+  applyFilters();
 }
 
 // CSV import/export
@@ -222,6 +142,7 @@ ui.csvFile?.addEventListener('change', async (e) => {
   const text = await file.text();
   const rows = csvParse(text);
   const mapped = rows.map(r => ({
+    id: `local-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
     name: r.name || r.Name,
     email: r.email || r.Email || null,
     side: (r.side || r.Side || 'bride').toLowerCase(),
@@ -231,17 +152,10 @@ ui.csvFile?.addEventListener('change', async (e) => {
     partySize: Number(r.partySize || 1),
     rsvpStatus: (r.rsvpStatus || 'none').toLowerCase(),
   }));
-  try {
-    const { addDoc, collection, serverTimestamp } = firestore;
-    for (const g of mapped) {
-      await addDoc(collection(db, 'invites'), { ...g, createdAt: serverTimestamp() });
-    }
-    alert('Import complete: ' + mapped.length + ' guests.');
-  } catch(err) {
-    alert('Import failed: ' + err.message);
-  } finally {
-    e.target.value = '';
-  }
+  state.invites = [...mapped, ...state.invites];
+  applyFilters();
+  e.target.value = '';
+  alert('Import complete: ' + mapped.length + ' guests (demo mode).');
 });
 
 ui.exportBtn?.addEventListener('click', () => {
@@ -287,12 +201,11 @@ function csvParse(text){
   return rows.map(r => Object.fromEntries(header.map((h, idx) => [h, r[idx]])));
 }
 
-// In demo mode (no Firebase), allow quick preview with dummy data
-if (!firebaseConfig){
-  state.invites = [
-    { id: 'demo-1', name: 'Taylor Swift', email: 'taylor@example.com', side: 'bride', partySize: 1, rsvpStatus: 'yes', tags:['music'] },
-    { id: 'demo-2', name: 'Jordan Lee', email: 'jordan@example.com', side: 'groom', partySize: 2, rsvpStatus: 'none', tags:['family'] },
-  ];
-  ui.authView.hidden = true; ui.appView.hidden = false;
-  renderRows(state.invites);
-}
+// Demo init
+ui.authView.hidden = true;
+ui.appView.hidden = false;
+state.invites = [
+  { id: 'demo-1', name: 'Taylor Swift', email: 'taylor@example.com', side: 'bride', partySize: 1, rsvpStatus: 'yes', tags:['music'] },
+  { id: 'demo-2', name: 'Jordan Lee', email: 'jordan@example.com', side: 'groom', partySize: 2, rsvpStatus: 'none', tags:['family'] },
+];
+applyFilters();
