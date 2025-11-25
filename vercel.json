@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/tracker", "dest": "/web/tracker/index.html" },
+    { "src": "/tracker/(.*)", "dest": "/web/tracker/$1" },
+    { "src": "/(.*)", "dest": "/web/$1" }
+  ]
+}
