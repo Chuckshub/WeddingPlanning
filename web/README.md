@@ -1,11 +1,13 @@
 # Modern Wedding Registry (Vanilla + Firebase placeholders)
 
-A lightweight, single-page wedding registry with a modern look. Works offline with demo data, and can switch to Firebase/Firestore by adding a config file.
+A lightweight, single-page wedding registry with a modern look. Works offline with demo data. Firebase is disabled by default for easy deploy; you can re-enable later.
 
 ## Quick start
 
 1) Open locally
 - From this folder, just open `web/index.html` in a browser. You will see demo data.
+
+Note: For public preview, Firebase is turned off. The app uses local demo data and no network calls, so it deploys instantly on Vercel. To enable Firebase later, re-add the firebase-config import in web/app.js and restore the SDK block (see comments in code), then follow the setup steps below.
 
 2) Enable Firebase (optional)
 - Copy `firebase-config.example.js` to `firebase-config.js` and fill in your project keys from Firebase Console.

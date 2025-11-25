@@ -24,32 +24,9 @@ const state = {
   firebase: { app: null, db: null, enabled: false },
 };
 
-// Try to import Firebase config if present
-let firebaseConfig = null;
-try {
-  // Note: this will succeed only if you create web/firebase-config.js
-  const mod = await import('./firebase-config.js');
-  firebaseConfig = mod.firebaseConfig ?? null;
-} catch (_) {
-  // Keep silent — we'll use demo data
-}
-
-// If config is present, dynamically import Firebase SDK (ESM CDN)
-if (firebaseConfig) {
-  try {
-    const [{ initializeApp }, { getFirestore, collection, onSnapshot, addDoc, doc, runTransaction, serverTimestamp }]
-      = await Promise.all([
-        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js'),
-        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js'),
-      ]);
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    state.firebase = { app, db, enabled: true, collection, onSnapshot, addDoc, doc, runTransaction, serverTimestamp };
-  } catch (err) {
-    console.warn('Firebase SDK not available, falling back to demo data.', err);
-  }
-}
+// Static demo mode: Firebase disabled to allow immediate deploy on Vercel/Netlify/etc.
+// To re-enable later, restore the firebase-config import and SDK setup.
+state.firebase.enabled = false;
 
 // Render a single gift card from data
 function renderGiftCard(gift) {
