@@ -1,4 +1,61 @@
 # Modern Wedding Registry (Vanilla + Firebase placeholders)
+# Modern Wedding Guest Studio
+
+## Firebase configuration
+
+Create the following Vercel environment variables (Project Settings → Environment Variables). They will be exposed to the browser via the `/api/firebase-config` helper endpoint and never hard-coded in the repo.
+
+```
+FIREBASE_API_KEY
+FIREBASE_AUTH_DOMAIN
+FIREBASE_PROJECT_ID
+FIREBASE_STORAGE_BUCKET
+FIREBASE_MESSAGING_SENDER_ID
+FIREBASE_APP_ID
+```
+
+Set them for Preview and Production environments. Vercel’s `vercel env pull` can generate a local `.env` for previews if you need to run locally.
+
+## Firestore collections
+
+`guests` – each document follows the schema used by the planner:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| actuallyInvited | boolean |
+| guestId | string |
+| firstName | string |
+| lastName | string |
+| partyGroup | string |
+| relationship | string |
+| inviteCategory | "family" \| "friend" \| "vendor" \| "vip" \| "other" |
+| plusOneInvited | boolean |
+| plusOneFirstName | string |
+| plusOneLastName | string |
+| plusOneAttending | boolean |
+| numberOfChildren | number |
+| child1Name / child1Age … child3Name / child3Age | string / number |
+| email | string |
+| phone | string |
+| address | string |
+| rsvpStatus | "none" \| "yes" \| "no" \| "maybe" |
+| guestAttending | boolean |
+| childrenAttending | number |
+| totalInParty | number |
+| dietaryRestrictions | string |
+| specialAccommodations | string |
+| tableNumber | number |
+| tableName | string |
+| seatingPriority | "high" \| "standard" \| "low" |
+| notes | string |
+| createdAt | timestamp |
+| updatedAt | timestamp |
+
+## CSV import
+
+Supply a UTF-8 CSV with headers exactly matching the schema names (e.g. `Plus_One_First_Name`). The importer will coerce booleans ("yes", "true", "1") and numbers, and will auto-calculate `total_in_party` if omitted.
+
+When Firebase is connected, CSV import writes directly into the `guests` collection using batched writes so the data propagates instantly.
 
 A lightweight, single-page wedding registry with a modern look. Works offline with demo data. Firebase is disabled by default for easy deploy; you can re-enable later.
 

@@ -103,6 +103,9 @@ body {
   padding: clamp(24px, 4vw, 40px);
 }
 
+.table-actions{display:flex;gap:6px;justify-content:center}
+.btn.btn-mini{padding:6px 10px;font-size:0.78rem;line-height:1}
+
 .control-panel {
   display: flex;
   flex-direction: column;
