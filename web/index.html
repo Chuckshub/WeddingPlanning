@@ -57,11 +57,9 @@
           <header class="panel-header"><h2>Quick views</h2></header>
           <div class="chip-list" id="view-chips">
             <button class="chip active" data-view="all">All guests</button>
-            <button class="chip" data-view="bride">Bride side</button>
-            <button class="chip" data-view="groom">Groom side</button>
-            <button class="chip" data-view="both">Both sides</button>
-            <button class="chip" data-view="plus">Has plus-one</button>
-            <button class="chip" data-view="vip">VIP</button>
+            <button class="chip" data-view="family">Family</button>
+            <button class="chip" data-view="friends">Friends</button>
+            <button class="chip" data-view="vip">VIP priority</button>
             <button class="chip" data-view="needs-table">Needs table</button>
           </div>
         </section>
@@ -70,12 +68,14 @@
           <header class="panel-header"><h2>Filters</h2></header>
           <div class="filter-group">
             <label class="field">
-              <span>Side</span>
-              <select id="filter-side">
-                <option value="all">All sides</option>
-                <option value="bride">Bride</option>
-                <option value="groom">Groom</option>
-                <option value="both">Both</option>
+              <span>Invite category</span>
+              <select id="filter-category">
+                <option value="all">All categories</option>
+                <option value="family">Family</option>
+                <option value="friend">Friend</option>
+                <option value="vendor">Vendor</option>
+                <option value="vip">VIP</option>
+                <option value="other">Other</option>
               </select>
             </label>
             <label class="field">
@@ -106,7 +106,7 @@
             <button class="chip active" data-group="none">None</button>
             <button class="chip" data-group="familyName">Family</button>
             <button class="chip" data-group="tableNumber">Table</button>
-            <button class="chip" data-group="side">Side</button>
+            <button class="chip" data-group="partyGroup">Party group</button>
           </div>
         </section>
 
@@ -153,59 +153,169 @@
         <h3 id="modal-title" class="serif">Add guest</h3>
         <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
       </header>
-      <div class="modal-body grid-2">
-        <label class="field">
-          <span>Full name</span>
-          <input name="name" required placeholder="Guest name" />
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input name="email" type="email" placeholder="guest@email.com" />
-        </label>
-        <label class="field">
-          <span>Side</span>
-          <select name="side">
-            <option value="bride">Bride</option>
-            <option value="groom">Groom</option>
-            <option value="both">Both</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Relationship</span>
-          <input name="relationship" placeholder="Family, friend, coworker…" />
-        </label>
-        <label class="field">
-          <span>Family name</span>
-          <input name="familyName" placeholder="e.g., Smith" />
-        </label>
-        <label class="field">
-          <span>Table # (0 = unassigned)</span>
-          <input name="tableNumber" type="number" min="0" value="0" />
-        </label>
-        <label class="field">
-          <span>Plus-ones allowed</span>
-          <input name="plusOnesAllowed" type="number" min="0" value="0" />
-        </label>
-        <label class="field">
-          <span>Plus-one name</span>
-          <input name="plusOneName" placeholder="Leave blank if unknown" />
-        </label>
-        <label class="field">
-          <span>RSVP status</span>
-          <select name="rsvpStatus">
-            <option value="none">No response</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-            <option value="maybe">Maybe</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Tags (comma separated)</span>
-          <input name="tags" placeholder="VIP, family, vendor" />
-        </label>
+      <div class="modal-body">
+        <div class="section-title">Invitation</div>
+        <div class="grid-2">
+          <label class="field checkbox full">
+            <input type="checkbox" name="actuallyInvited" />
+            <span>Actually invited?</span>
+          </label>
+          <label class="field">
+            <span>Guest ID</span>
+            <input name="guestId" placeholder="A-101" />
+          </label>
+          <label class="field">
+            <span>Party group</span>
+            <input name="partyGroup" placeholder="Lee Family" />
+          </label>
+          <label class="field">
+            <span>Relationship</span>
+            <input name="relationship" placeholder="Cousin, Friend, Vendor…" />
+          </label>
+          <label class="field">
+            <span>Invite category</span>
+            <select name="inviteCategory">
+              <option value="family">Family</option>
+              <option value="friend">Friend</option>
+              <option value="vendor">Vendor</option>
+              <option value="vip">VIP</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="section-title">Primary guest</div>
+        <div class="grid-2">
+          <label class="field">
+            <span>First name</span>
+            <input name="firstName" required placeholder="First name" />
+          </label>
+          <label class="field">
+            <span>Last name</span>
+            <input name="lastName" required placeholder="Last name" />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input name="email" type="email" placeholder="guest@email.com" />
+          </label>
+          <label class="field">
+            <span>Phone</span>
+            <input name="phone" type="tel" placeholder="(512) 555‑0198" />
+          </label>
+          <label class="field full">
+            <span>Mailing address</span>
+            <textarea name="address" rows="2" placeholder="123 Hilltop Dr, Austin, TX"></textarea>
+          </label>
+        </div>
+
+        <div class="section-title">Plus-one</div>
+        <div class="grid-2">
+          <label class="field checkbox full">
+            <input type="checkbox" name="plusOneInvited" />
+            <span>Plus-one invited?</span>
+          </label>
+          <label class="field">
+            <span>Plus-one first name</span>
+            <input name="plusOneFirstName" placeholder="Avery" />
+          </label>
+          <label class="field">
+            <span>Plus-one last name</span>
+            <input name="plusOneLastName" placeholder="Kim" />
+          </label>
+          <label class="field checkbox full">
+            <input type="checkbox" name="plusOneAttending" />
+            <span>Plus-one attending</span>
+          </label>
+        </div>
+
+        <div class="section-title">Children</div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Number of children</span>
+            <input name="numberOfChildren" type="number" min="0" value="0" />
+          </label>
+          <label class="field">
+            <span>Children attending</span>
+            <input name="childrenAttending" type="number" min="0" value="0" />
+          </label>
+          <label class="field">
+            <span>Child 1 name</span>
+            <input name="child1Name" placeholder="Name" />
+          </label>
+          <label class="field">
+            <span>Child 1 age</span>
+            <input name="child1Age" type="number" min="0" />
+          </label>
+          <label class="field">
+            <span>Child 2 name</span>
+            <input name="child2Name" placeholder="Name" />
+          </label>
+          <label class="field">
+            <span>Child 2 age</span>
+            <input name="child2Age" type="number" min="0" />
+          </label>
+          <label class="field">
+            <span>Child 3 name</span>
+            <input name="child3Name" placeholder="Name" />
+          </label>
+          <label class="field">
+            <span>Child 3 age</span>
+            <input name="child3Age" type="number" min="0" />
+          </label>
+        </div>
+
+        <div class="section-title">Attendance & comfort</div>
+        <div class="grid-2">
+          <label class="field">
+            <span>RSVP status</span>
+            <select name="rsvpStatus">
+              <option value="none">No response</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="maybe">Maybe</option>
+            </select>
+          </label>
+          <label class="field checkbox full">
+            <input type="checkbox" name="guestAttending" />
+            <span>Primary guest attending</span>
+          </label>
+          <label class="field">
+            <span>Total in party</span>
+            <input name="totalInParty" type="number" min="0" value="1" />
+          </label>
+          <label class="field full">
+            <span>Dietary restrictions</span>
+            <textarea name="dietaryRestrictions" rows="2" placeholder="Vegetarian, gluten-free, etc."></textarea>
+          </label>
+          <label class="field full">
+            <span>Special accommodations</span>
+            <textarea name="specialAccommodations" rows="2" placeholder="Accessibility, travel, timing notes"></textarea>
+          </label>
+        </div>
+
+        <div class="section-title">Seating</div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Table number</span>
+            <input name="tableNumber" type="number" min="0" value="0" />
+          </label>
+          <label class="field">
+            <span>Table name</span>
+            <input name="tableName" placeholder="Cedar" />
+          </label>
+          <label class="field">
+            <span>Seating priority</span>
+            <select name="seatingPriority">
+              <option value="standard">Standard</option>
+              <option value="high">High</option>
+              <option value="low">Low</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="section-title">Notes</div>
         <label class="field full">
-          <span>Notes</span>
-          <textarea name="notes" rows="2" placeholder="Dietary needs, travel info, gifts, etc."></textarea>
+          <textarea name="notes" rows="3" placeholder="Travel plans, gift notes, reception reminders…"></textarea>
         </label>
       </div>
       <footer class="modal-footer">

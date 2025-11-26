@@ -1,5 +1,5 @@
-// grid.js — Guest Data Studio for Mandy & Charlie
-// Futuristic, highly-usable guest planner with Tabulator + Excel features
+// grid.js — Guest Data Studio (pro edition)
+// Futuristic spreadsheet-style wedding guest planner with analytics, quick views, and CSV/XLSX I/O.
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -15,7 +15,7 @@ const ui = {
   density: $('#density'),
   viewChips: $$('#view-chips .chip'),
   groupChips: $$('#grouping-chips .chip'),
-  sideFilter: $('#filter-side'),
+  categoryFilter: $('#filter-category'),
   rsvpFilter: $('#filter-rsvp'),
   tableFilter: $('#filter-table'),
   clearFilters: $('#clear-filters'),
@@ -36,7 +36,7 @@ const state = {
   filters: {
     search: '',
     view: 'all',
-    side: 'all',
+    category: 'all',
     rsvp: 'all',
     table: 'all',
   },
@@ -44,71 +44,226 @@ const state = {
 };
 
 const sampleGuests = [
-  { id: 'guest-001', name: 'Jordan Lee', email: 'jordan@example.com', side: 'groom', relationship: 'Cousin', familyName: 'Lee', tableNumber: 3, plusOnesAllowed: 1, plusOneName: 'Avery Kim', rsvpStatus: 'yes', tags: ['Family', 'Austin'], notes: 'Arrives Thursday afternoon.' },
-  { id: 'guest-002', name: 'Taylor Smith', email: 'taylor@example.com', side: 'bride', relationship: 'Friend', familyName: 'Smith', tableNumber: 0, plusOnesAllowed: 0, plusOneName: '', rsvpStatus: 'none', tags: ['Bridal party'], notes: 'Maid of honor rehearsal Friday 5pm.' },
-  { id: 'guest-003', name: 'Morgan Patel', email: 'morgan@northwind.io', side: 'both', relationship: 'Coworker', familyName: 'Patel', tableNumber: 6, plusOnesAllowed: 1, plusOneName: '', rsvpStatus: 'maybe', tags: ['Tech'], notes: 'Allergic to shellfish.' },
-  { id: 'guest-004', name: 'Sofia Alvarez', email: 'sofia@gather.co', side: 'bride', relationship: 'College friend', familyName: 'Alvarez', tableNumber: 0, plusOnesAllowed: 1, plusOneName: '', rsvpStatus: 'yes', tags: ['VIP', 'Bridesmaid'], notes: 'Needs hotel shuttle pickup.' },
-  { id: 'guest-005', name: 'Chris Johnson', email: 'chrisj@example.com', side: 'groom', relationship: 'Best man', familyName: 'Johnson', tableNumber: 1, plusOnesAllowed: 0, plusOneName: '', rsvpStatus: 'yes', tags: ['VIP', 'Groomsman'], notes: 'Speech notes on day-of.' },
-  { id: 'guest-006', name: 'Aisha Khan', email: 'aisha.khan@example.com', side: 'bride', relationship: 'Family', familyName: 'Khan', tableNumber: 5, plusOnesAllowed: 2, plusOneName: 'Summers Khan', rsvpStatus: 'no', tags: ['Family'], notes: 'Sending gift instead.' },
-  { id: 'guest-007', name: 'Daniel Wu', email: 'daniel@productlab.io', side: 'both', relationship: 'Coworker', familyName: 'Wu', tableNumber: 4, plusOnesAllowed: 0, plusOneName: '', rsvpStatus: 'yes', tags: ['Tech', 'VIP'], notes: 'Key investor, seat near couple.' },
-  { id: 'guest-008', name: 'Amelia Brooks', email: 'amelia@paperlane.co', side: 'groom', relationship: 'Friend', familyName: 'Brooks', tableNumber: 2, plusOnesAllowed: 1, plusOneName: 'Jamie Brooks', rsvpStatus: 'maybe', tags: ['Travel'], notes: 'Flying in Saturday morning.' },
+  {
+    id: 'guest-001',
+    actuallyInvited: true,
+    guestId: 'A-101',
+    firstName: 'Jordan',
+    lastName: 'Lee',
+    partyGroup: 'Lee Family',
+    relationship: 'Cousin',
+    inviteCategory: 'family',
+    plusOneInvited: true,
+    plusOneFirstName: 'Avery',
+    plusOneLastName: 'Kim',
+    plusOneAttending: true,
+    numberOfChildren: 0,
+    child1Name: '', child1Age: null,
+    child2Name: '', child2Age: null,
+    child3Name: '', child3Age: null,
+    email: 'jordan@example.com',
+    phone: '(512) 555‑0198',
+    address: '123 Hilltop Dr, Austin, TX 78701',
+    rsvpStatus: 'yes',
+    guestAttending: true,
+    childrenAttending: 0,
+    totalInParty: 2,
+    dietaryRestrictions: 'None',
+    specialAccommodations: '',
+    tableNumber: 3,
+    tableName: 'Cedar',
+    seatingPriority: 'high',
+    notes: 'Arrives Thursday afternoon; hotel downtown.',
+  },
+  {
+    id: 'guest-002',
+    actuallyInvited: true,
+    guestId: 'B-214',
+    firstName: 'Sofia',
+    lastName: 'Alvarez',
+    partyGroup: 'Bridal Party',
+    relationship: 'College friend',
+    inviteCategory: 'friend',
+    plusOneInvited: true,
+    plusOneFirstName: '',
+    plusOneLastName: '',
+    plusOneAttending: false,
+    numberOfChildren: 0,
+    child1Name: '', child1Age: null,
+    child2Name: '', child2Age: null,
+    child3Name: '', child3Age: null,
+    email: 'sofia@gather.co',
+    phone: '(415) 555‑0194',
+    address: '872 Valencia St, San Francisco, CA 94110',
+    rsvpStatus: 'none',
+    guestAttending: true,
+    childrenAttending: 0,
+    totalInParty: 1,
+    dietaryRestrictions: 'Gluten-free',
+    specialAccommodations: 'Needs shuttle pickup from hotel.',
+    tableNumber: 0,
+    tableName: '',
+    seatingPriority: 'high',
+    notes: 'Bridesmaid rehearsal Friday 5pm.',
+  },
+  {
+    id: 'guest-003',
+    actuallyInvited: true,
+    guestId: 'C-045',
+    firstName: 'Daniel',
+    lastName: 'Wu',
+    partyGroup: 'Investor Table',
+    relationship: 'Business partner',
+    inviteCategory: 'vip',
+    plusOneInvited: false,
+    plusOneFirstName: '',
+    plusOneLastName: '',
+    plusOneAttending: false,
+    numberOfChildren: 2,
+    child1Name: 'Lina', child1Age: 7,
+    child2Name: 'Noah', child2Age: 4,
+    child3Name: '', child3Age: null,
+    email: 'daniel@productlab.io',
+    phone: '(917) 555‑0112',
+    address: '455 Madison Ave, New York, NY 10022',
+    rsvpStatus: 'yes',
+    guestAttending: true,
+    childrenAttending: 2,
+    totalInParty: 3,
+    dietaryRestrictions: 'Peanut allergy (child).',
+    specialAccommodations: 'Booster seat requested.',
+    tableNumber: 6,
+    tableName: 'Magnolia',
+    seatingPriority: 'high',
+    notes: 'Key investor — seat near couple.',
+  },
+  {
+    id: 'guest-004',
+    actuallyInvited: false,
+    guestId: 'V-009',
+    firstName: 'Celeste',
+    lastName: 'Nguyen',
+    partyGroup: 'Vendors',
+    relationship: 'Florist',
+    inviteCategory: 'vendor',
+    plusOneInvited: false,
+    plusOneFirstName: '',
+    plusOneLastName: '',
+    plusOneAttending: false,
+    numberOfChildren: 0,
+    child1Name: '', child1Age: null,
+    child2Name: '', child2Age: null,
+    child3Name: '', child3Age: null,
+    email: 'hello@celesteblooms.com',
+    phone: '(737) 555‑0120',
+    address: '88 Market St, Austin, TX 78702',
+    rsvpStatus: 'maybe',
+    guestAttending: false,
+    childrenAttending: 0,
+    totalInParty: 0,
+    dietaryRestrictions: '',
+    specialAccommodations: 'Needs vendor meal.',
+    tableNumber: 0,
+    tableName: '',
+    seatingPriority: 'standard',
+    notes: 'Working timeline TBD.',
+  },
 ];
 
-let editingRow = null;
-
 const table = new Tabulator(ui.tableEl, {
-  height: '70vh',
+  height: '72vh',
   data: sampleGuests,
   layout: 'fitDataStretch',
   reactiveData: true,
-  placeholder: 'No guests yet — add one or import a CSV.',
   selectable: true,
   movableColumns: true,
+  resizableRows: false,
   clipboard: true,
-  groupHeader: groupHeader,
+  persistenceMode: true,
+  persistenceID: 'guest-data-studio-v1',
+  placeholder: 'No guests yet — press “New guest” or import a CSV.',
   columnDefaults: { headerHozAlign: 'left', headerSort: true, vertAlign: 'middle' },
+  groupHeader: (value, count, data) => {
+    const seats = data.reduce((sum, row) => sum + (Number(row.totalInParty) || fallbackPartySize(row)), 0);
+    const label = value ? escapeHtml(String(value)) : 'Unassigned';
+    return `${label} · ${count} guest${count === 1 ? '' : 's'} · ${seats} seat${seats === 1 ? '' : 's'}`;
+  },
   columns: [
     {
-      title: 'Guest',
+      title: 'Invitation',
       columns: [
-        { title: '#', field: 'id', width: 80, hozAlign: 'center', frozen: true },
-        { title: 'Name', field: 'name', editor: 'input', headerFilter: 'input', widthGrow: 2, frozen: true },
-        { title: 'Email', field: 'email', editor: 'input', headerFilter: 'input', widthGrow: 2 },
-        { title: 'Side', field: 'side', editor: 'select', headerFilter: true, width: 110, editorParams: { values: { bride: 'Bride', groom: 'Groom', both: 'Both' } }, formatter: titleCaseFormatter },
-        { title: 'Relationship', field: 'relationship', editor: 'input', headerFilter: 'input', widthGrow: 1.5 },
-        { title: 'Family', field: 'familyName', editor: 'input', headerFilter: 'input', widthGrow: 1.2 },
+        { title: 'Actually Invited?', field: 'actuallyInvited', width: 150, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
+        { title: 'Guest ID', field: 'guestId', editor: 'input', headerFilter: 'input', width: 130 },
+        { title: 'Party Group', field: 'partyGroup', editor: 'input', headerFilter: 'input', width: 160 },
+        { title: 'Relationship', field: 'relationship', editor: 'input', headerFilter: 'input', width: 160 },
+        { title: 'Invite Category', field: 'inviteCategory', editor: 'select', headerFilter: true, editorParams: { values: { family: 'Family', friend: 'Friend', vendor: 'Vendor', vip: 'VIP', other: 'Other' } }, width: 150 },
+      ],
+    },
+    {
+      title: 'Primary Guest',
+      columns: [
+        { title: 'First Name', field: 'firstName', editor: 'input', headerFilter: 'input', widthGrow: 1.2, frozen: true },
+        { title: 'Last Name', field: 'lastName', editor: 'input', headerFilter: 'input', widthGrow: 1.2, frozen: true },
+        { title: 'Email', field: 'email', editor: 'input', headerFilter: 'input', widthGrow: 1.8 },
+        { title: 'Phone', field: 'phone', editor: 'input', width: 160 },
+        { title: 'Address', field: 'address', editor: 'textarea', widthGrow: 2.5 },
+      ],
+    },
+    {
+      title: 'Plus-One',
+      columns: [
+        { title: 'Plus One Invited', field: 'plusOneInvited', width: 160, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
+        { title: 'Plus One First Name', field: 'plusOneFirstName', editor: 'input', headerFilter: 'input', widthGrow: 1.2 },
+        { title: 'Plus One Last Name', field: 'plusOneLastName', editor: 'input', headerFilter: 'input', widthGrow: 1.2 },
+        { title: 'Plus One Attending', field: 'plusOneAttending', width: 170, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
+      ],
+    },
+    {
+      title: 'Children',
+      columns: [
+        { title: 'Number of Children', field: 'numberOfChildren', width: 170, hozAlign: 'center', editor: 'number' },
+        { title: 'Child 1 Name', field: 'child1Name', editor: 'input', width: 150 },
+        { title: 'Child 1 Age', field: 'child1Age', width: 120, hozAlign: 'center', editor: 'number' },
+        { title: 'Child 2 Name', field: 'child2Name', editor: 'input', width: 150 },
+        { title: 'Child 2 Age', field: 'child2Age', width: 120, hozAlign: 'center', editor: 'number' },
+        { title: 'Child 3 Name', field: 'child3Name', editor: 'input', width: 150 },
+        { title: 'Child 3 Age', field: 'child3Age', width: 120, hozAlign: 'center', editor: 'number' },
+      ],
+    },
+    {
+      title: 'Attendance & Comfort',
+      columns: [
+        { title: 'RSVP Status', field: 'rsvpStatus', width: 150, hozAlign: 'center', editor: 'select', editorParams: { values: { none: 'No response', yes: 'Yes', no: 'No', maybe: 'Maybe' } }, formatter: rsvpFormatter },
+        { title: 'Guest Attending', field: 'guestAttending', width: 150, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
+        { title: 'Plus One Attending', field: 'plusOneAttending', width: 170, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
+        { title: 'Children Attending', field: 'childrenAttending', width: 170, hozAlign: 'center', editor: 'number' },
+        { title: 'Total in Party', field: 'totalInParty', width: 150, hozAlign: 'center', editor: 'number' },
+        { title: 'Dietary Restrictions', field: 'dietaryRestrictions', editor: 'textarea', widthGrow: 1.6 },
+        { title: 'Special Accommodations', field: 'specialAccommodations', editor: 'textarea', widthGrow: 1.6 },
       ],
     },
     {
       title: 'Seating',
       columns: [
-        { title: 'Table', field: 'tableNumber', editor: 'number', sorter: 'number', width: 100, hozAlign: 'center', formatter: tableFormatter },
-        { title: 'Plus-one seats', field: 'plusOnesAllowed', editor: 'number', sorter: 'number', width: 130, hozAlign: 'center' },
-        { title: 'Plus one name', field: 'plusOneName', editor: 'input', headerFilter: 'input', widthGrow: 1.4 },
+        { title: 'Table Number', field: 'tableNumber', width: 140, hozAlign: 'center', editor: 'number' },
+        { title: 'Table Name', field: 'tableName', editor: 'input', widthGrow: 1.2 },
+        { title: 'Seating Priority', field: 'seatingPriority', editor: 'select', editorParams: { values: { high: 'High', standard: 'Standard', low: 'Low' } }, width: 150 },
       ],
     },
-    {
-      title: 'Status',
-      columns: [
-        { title: 'RSVP', field: 'rsvpStatus', width: 120, hozAlign: 'center', editor: 'select', editorParams: { values: { none: 'No response', yes: 'Yes', no: 'No', maybe: 'Maybe' } }, formatter: rsvpFormatter },
-        { title: 'Tags', field: 'tags', widthGrow: 1.6, formatter: tagsFormatter, mutatorEdit: tagMutator },
-      ],
-    },
-    { title: 'Notes', field: 'notes', editor: 'textarea', widthGrow: 2 },
+    { title: 'Notes', field: 'notes', editor: 'textarea', widthGrow: 2.5 },
   ],
 });
 
-// --- Formatting helpers ----------------------------------------------------
+// --- Helpers ----------------------------------------------------------------
 
-function titleCaseFormatter(cell) {
-  const value = cell.getValue();
-  if (!value) return '';
-  return value.charAt(0).toUpperCase() + value.slice(1);
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s] || s));
 }
 
-function tableFormatter(cell) {
-  const value = Number(cell.getValue() || 0);
-  return value === 0 ? '—' : `Table ${value}`;
+function fallbackPartySize(row) {
+  const base = (row.guestAttending ? 1 : 0) + (row.plusOneAttending ? 1 : 0) + (Number(row.childrenAttending) || 0);
+  if (base > 0) return base;
+  return 1 + (row.plusOneInvited ? 1 : 0) + (Number(row.numberOfChildren) || 0);
 }
 
 function rsvpFormatter(cell) {
@@ -123,109 +278,131 @@ function rsvpFormatter(cell) {
   return `<span class="${cls}">${text}</span>`;
 }
 
-function tagsFormatter(cell) {
-  const tags = cell.getValue();
-  if (!tags || !tags.length) return '';
-  return `<span class="tag-list">${tags.map(tag => `<span class="tag-pill">${escapeHtml(tag)}</span>`).join('')}</span>`;
-}
-
-function tagMutator(value) {
-  if (Array.isArray(value)) return value;
-  if (!value) return [];
-  return String(value)
-    .split(',')
-    .map(v => v.trim())
-    .filter(Boolean);
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/[&<>"]+/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s] || s));
-}
-
-function groupHeader(value, count, rows) {
-  const seats = rows.reduce((sum, row) => sum + 1 + (Number(row.plusOnesAllowed) || 0), 0);
-  const label = value ? escapeHtml(value) : 'Unassigned';
-  return `${label} · ${count} guest${count === 1 ? '' : 's'} · ${seats} seat${seats === 1 ? '' : 's'}`;
-}
-
-// --- Filtering --------------------------------------------------------------
-
 function matchesQuickView(data, view) {
   switch (view) {
-    case 'bride':
-      return data.side === 'bride';
-    case 'groom':
-      return data.side === 'groom';
-    case 'both':
-      return data.side === 'both';
-    case 'plus':
-      return Number(data.plusOnesAllowed || 0) > 0;
+    case 'family':
+      return (data.inviteCategory || '').toLowerCase() === 'family';
+    case 'friends':
+      return (data.inviteCategory || '').toLowerCase() === 'friend';
     case 'vip':
-      return (data.tags || []).some(tag => tag.toLowerCase() === 'vip');
+      return (data.seatingPriority || '').toLowerCase() === 'high' || (data.inviteCategory || '').toLowerCase() === 'vip';
     case 'needs-table':
-      return Number(data.tableNumber || 0) === 0;
+      return !Number(data.tableNumber || 0);
     default:
       return true;
   }
 }
 
+function computeStats(rows) {
+  const totalSeats = rows.reduce((sum, guest) => sum + (Number(guest.totalInParty) || fallbackPartySize(guest)), 0);
+  const plusInvited = rows.reduce((sum, guest) => sum + (guest.plusOneInvited ? 1 : 0), 0);
+  const unassigned = rows.filter(guest => !Number(guest.tableNumber || 0)).length;
+  const families = new Set(rows.map(guest => (guest.partyGroup || `${guest.lastName || ''} family`).trim()).filter(Boolean)).size;
+  return {
+    totalGuests: rows.length,
+    totalSeats,
+    plusInvited,
+    unassigned,
+    families,
+  };
+}
+
+function refreshStats() {
+  const rows = table.getData('active');
+  const { totalGuests, totalSeats, plusInvited, unassigned, families } = computeStats(rows);
+  if (ui.stats.guests) ui.stats.guests.textContent = totalGuests;
+  if (ui.stats.seats) ui.stats.seats.textContent = totalSeats;
+  if (ui.stats.plus) ui.stats.plus.textContent = plusInvited;
+  if (ui.stats.unassigned) ui.stats.unassigned.textContent = unassigned;
+  if (kpiFamiliesEl) kpiFamiliesEl.textContent = families; // optional KPI hook (fallback if element exists)
+}
+
+const kpiFamiliesEl = document.getElementById('kpi-families');
+const kpiYesEl = document.getElementById('kpi-yes');
+const kpiNoEl = document.getElementById('kpi-no');
+const kpiPlusEl = document.getElementById('kpi-plus');
+const kpiTotalEl = document.getElementById('kpi-total');
+
+function refreshKPIs() {
+  const rows = table.getData('active');
+  const { totalGuests, totalSeats, plusInvited, unassigned, families } = computeStats(rows);
+  if (kpiTotalEl) kpiTotalEl.textContent = totalGuests;
+  if (kpiFamiliesEl) kpiFamiliesEl.textContent = families;
+  if (kpiPlusEl) kpiPlusEl.textContent = plusInvited;
+  if (ui.stats.plus) ui.stats.plus.textContent = plusInvited;
+  const yesCount = rows.filter(row => (row.rsvpStatus || '').toLowerCase() === 'yes').length;
+  const pending = rows.length - yesCount;
+  if (kpiYesEl) kpiYesEl.textContent = yesCount;
+  if (kpiNoEl) kpiNoEl.textContent = pending;
+  if (ui.stats.unassigned) ui.stats.unassigned.textContent = unassigned;
+  if (ui.stats.seats) ui.stats.seats.textContent = totalSeats;
+  if (ui.stats.guests) ui.stats.guests.textContent = totalGuests;
+}
+
 function applyFilters() {
   table.setFilter(row => {
     const data = row.getData();
-    const { search, view, side, rsvp, table: tableStatus } = state.filters;
+    const { search, view, category, rsvp, table: tableStatus } = state.filters;
 
     if (view !== 'all' && !matchesQuickView(data, view)) return false;
-    if (side !== 'all' && data.side !== side) return false;
-    if (rsvp !== 'all' && (data.rsvpStatus || 'none') !== rsvp) return false;
-    if (tableStatus === 'assigned' && Number(data.tableNumber || 0) === 0) return false;
-    if (tableStatus === 'unassigned' && Number(data.tableNumber || 0) !== 0) return false;
+    if (category !== 'all' && (data.inviteCategory || '').toLowerCase() !== category) return false;
+    if (rsvp !== 'all' && (data.rsvpStatus || 'none').toLowerCase() !== rsvp) return false;
+    if (tableStatus === 'assigned' && !Number(data.tableNumber || 0)) return false;
+    if (tableStatus === 'unassigned' && Number(data.tableNumber || 0)) return false;
+
     if (search) {
       const haystack = [
-        data.name,
-        data.email,
-        data.side,
+        data.firstName,
+        data.lastName,
+        data.partyGroup,
         data.relationship,
-        data.familyName,
-        data.plusOneName,
+        data.inviteCategory,
+        data.plusOneFirstName,
+        data.plusOneLastName,
+        data.email,
+        data.phone,
+        data.address,
+        data.dietaryRestrictions,
+        data.specialAccommodations,
+        data.tableName,
         data.notes,
-        (data.tags || []).join(' '),
       ]
         .join(' ')
         .toLowerCase();
       if (!haystack.includes(search)) return false;
     }
+
     return true;
   });
 
-  refreshStats();
   renderActiveFilters();
+  refreshStats();
+  refreshKPIs();
 }
 
 function renderActiveFilters() {
   if (!ui.activeFilters) return;
   ui.activeFilters.innerHTML = '';
-  const tokens = [];
-  const { search, view, side, rsvp, table } = state.filters;
+  const chips = [];
+  const { search, view, category, rsvp, table } = state.filters;
 
   const viewLabels = {
-    bride: 'Bride side',
-    groom: 'Groom side',
-    both: 'Both sides',
-    plus: 'Has plus-one',
-    vip: 'VIP',
+    family: 'Family view',
+    friends: 'Friends view',
+    vip: 'VIP priority',
     'needs-table': 'Needs table',
   };
-  if (view !== 'all') tokens.push(`View · ${viewLabels[view] || view}`);
-  if (side !== 'all') tokens.push(`Side · ${titleCase(side)}`);
-  if (rsvp !== 'all') tokens.push(`RSVP · ${titleCase(rsvp)}`);
-  if (table !== 'all') tokens.push(table === 'assigned' ? 'Table · Assigned' : 'Table · Unassigned');
-  if (search) tokens.push(`Search · "${search}"`);
 
-  tokens.forEach(token => {
+  if (view !== 'all') chips.push(viewLabels[view] || view);
+  if (category !== 'all') chips.push(`Category · ${titleCase(category)}`);
+  if (rsvp !== 'all') chips.push(`RSVP · ${titleCase(rsvp)}`);
+  if (table !== 'all') chips.push(table === 'assigned' ? 'Seated guests' : 'No table');
+  if (search) chips.push(`Search · "${search}"`);
+
+  chips.forEach(text => {
     const span = document.createElement('span');
     span.className = 'filter-token';
-    span.textContent = token;
+    span.textContent = text;
     ui.activeFilters.appendChild(span);
   });
 }
@@ -234,37 +411,19 @@ function titleCase(str = '') {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// --- Stats ------------------------------------------------------------------
-
-function refreshStats() {
-  const rows = table.getData('active');
-  const totalGuests = rows.length;
-  const totalSeats = rows.reduce((sum, guest) => sum + 1 + (Number(guest.plusOnesAllowed) || 0), 0);
-  const plusSeats = rows.reduce((sum, guest) => sum + (Number(guest.plusOnesAllowed) || 0), 0);
-  const unassigned = rows.filter(guest => Number(guest.tableNumber || 0) === 0).length;
-
-  if (ui.stats.guests) ui.stats.guests.textContent = totalGuests;
-  if (ui.stats.seats) ui.stats.seats.textContent = totalSeats;
-  if (ui.stats.plus) ui.stats.plus.textContent = plusSeats;
-  if (ui.stats.unassigned) ui.stats.unassigned.textContent = unassigned;
-}
-
 // --- Density ----------------------------------------------------------------
 
 function applyDensity() {
   const compact = ui.density?.value === 'compact';
   ui.tableEl.classList.toggle('table-density-compact', compact);
   ui.tableEl.classList.toggle('table-density-cozy', !compact);
+  table.redraw(true);
 }
 
-ui.density?.addEventListener('change', () => {
-  applyDensity();
-  table.redraw(true);
-});
-
+ui.density?.addEventListener('change', applyDensity);
 applyDensity();
 
-// --- Grouping ----------------------------------------------------------------
+// --- Grouping ---------------------------------------------------------------
 
 ui.groupChips.forEach(chip => {
   chip.addEventListener('click', () => {
@@ -289,10 +448,10 @@ ui.viewChips.forEach(chip => {
   });
 });
 
-// --- Select filters ---------------------------------------------------------
+// --- Filters ---------------------------------------------------------------
 
-ui.sideFilter?.addEventListener('change', () => {
-  state.filters.side = ui.sideFilter.value;
+ui.categoryFilter?.addEventListener('change', () => {
+  state.filters.category = ui.categoryFilter.value;
   applyFilters();
 });
 
@@ -307,16 +466,16 @@ ui.tableFilter?.addEventListener('change', () => {
 });
 
 ui.clearFilters?.addEventListener('click', () => {
-  state.filters = { search: '', view: 'all', side: 'all', rsvp: 'all', table: 'all' };
-  ui.search.value = '';
-  ui.sideFilter.value = 'all';
-  ui.rsvpFilter.value = 'all';
-  ui.tableFilter.value = 'all';
-  ui.viewChips.forEach(chip => chip.classList.toggle('active', (chip.dataset.view || 'all') === 'all'));
+  state.filters = { search: '', view: 'all', category: 'all', rsvp: 'all', table: 'all' };
+  if (ui.search) ui.search.value = '';
+  if (ui.categoryFilter) ui.categoryFilter.value = 'all';
+  if (ui.rsvpFilter) ui.rsvpFilter.value = 'all';
+  if (ui.tableFilter) ui.tableFilter.value = 'all';
+  ui.viewChips.forEach(chip => chip.classList.toggle('active', chip.dataset.view === 'all'));
   applyFilters();
 });
 
-// --- Search -----------------------------------------------------------------
+// --- Search & keyboard -----------------------------------------------------
 
 ui.search?.addEventListener('input', e => {
   state.filters.search = e.target.value.trim().toLowerCase();
@@ -324,46 +483,41 @@ ui.search?.addEventListener('input', e => {
 });
 
 window.addEventListener('keydown', e => {
-  if (e.key === '/' && !isTypingInField(document.activeElement)) {
+  const activeTag = document.activeElement?.tagName;
+  const typing = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+  if (e.key === '/' && !typing) {
     e.preventDefault();
     ui.search?.focus();
   }
-  if (e.key.toLowerCase() === 'n' && !isTypingInField(document.activeElement)) {
+  if (e.key.toLowerCase() === 'n' && !typing) {
     e.preventDefault();
     openModal();
   }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && !isTypingInField(document.activeElement)) {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && !typing) {
     if (!ui.del?.disabled) bulkDelete();
   }
 });
 
-function isTypingInField(active) {
-  return active && ['INPUT', 'TEXTAREA'].includes(active.tagName);
-}
-
-// --- Column manager ---------------------------------------------------------
+// --- Column manager --------------------------------------------------------
 
 function renderColumnManager() {
   if (!ui.columnManager) return;
-  const columns = table.getColumns();
   ui.columnManager.innerHTML = '';
-  columns.forEach(column => {
+  table.getColumns().forEach(column => {
     const def = column.getDefinition();
     if (!def.field || def.field.startsWith('_')) return;
-    const wrapper = document.createElement('label');
-    wrapper.className = 'column-toggle';
+    const label = document.createElement('label');
+    label.className = 'column-toggle';
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.checked = column.isVisible();
-    input.dataset.field = def.field;
     input.addEventListener('change', () => {
-      if (input.checked) column.show();
-      else column.hide();
+      input.checked ? column.show() : column.hide();
     });
     const span = document.createElement('span');
     span.textContent = def.title;
-    wrapper.append(input, span);
-    ui.columnManager.appendChild(wrapper);
+    label.append(input, span);
+    ui.columnManager.appendChild(label);
   });
 }
 
@@ -371,58 +525,76 @@ renderColumnManager();
 
 table.on('columnVisibilityChanged', renderColumnManager);
 
-// --- Selection + stats updates ---------------------------------------------
+// --- Table events ----------------------------------------------------------
 
 table.on('rowSelectionChanged', rows => {
   if (ui.del) ui.del.disabled = rows.length === 0;
 });
 
-table.on('dataProcessed', refreshStats);
-table.on('rowAdded', refreshStats);
-table.on('rowDeleted', refreshStats);
-table.on('cellEdited', () => {
-  refreshStats();
-  applyFilters();
-});
+table.on('dataProcessed', () => { refreshStats(); refreshKPIs(); });
+table.on('rowAdded', () => { refreshStats(); refreshKPIs(); });
+table.on('rowDeleted', () => { refreshStats(); refreshKPIs(); });
+table.on('cellEdited', () => { refreshStats(); refreshKPIs(); applyFilters(); });
 
-table.on('rowDblClick', (e, row) => {
-  openModal(row);
-});
+table.on('rowDblClick', (e, row) => openModal(row));
 
 refreshStats();
+refreshKPIs();
 applyFilters();
 
-// --- Modal form -------------------------------------------------------------
+// --- Modal -----------------------------------------------------------------
 
 ui.add?.addEventListener('click', () => openModal());
 
 ui.form?.addEventListener('submit', event => {
   event.preventDefault();
-  const form = new FormData(ui.form);
-  const payload = {
-    name: form.get('name').trim(),
-    email: form.get('email').trim(),
-    side: form.get('side'),
-    relationship: form.get('relationship').trim(),
-    familyName: form.get('familyName').trim(),
-    tableNumber: Number(form.get('tableNumber') || 0),
-    plusOnesAllowed: Number(form.get('plusOnesAllowed') || 0),
-    plusOneName: form.get('plusOneName').trim(),
-    rsvpStatus: form.get('rsvpStatus'),
-    tags: tagMutator(form.get('tags')),
-    notes: form.get('notes').trim(),
-  };
+  const form = ui.form;
+  const record = normalizePayload({
+    id: editingRow?.getData().id || `guest-${Date.now().toString(36)}`,
+    actuallyInvited: form.actuallyInvited.checked,
+    guestId: form.guestId.value.trim(),
+    firstName: form.firstName.value.trim(),
+    lastName: form.lastName.value.trim(),
+    partyGroup: form.partyGroup.value.trim(),
+    relationship: form.relationship.value.trim(),
+    inviteCategory: form.inviteCategory.value,
+    plusOneInvited: form.plusOneInvited.checked,
+    plusOneFirstName: form.plusOneFirstName.value.trim(),
+    plusOneLastName: form.plusOneLastName.value.trim(),
+    plusOneAttending: form.plusOneAttending.checked,
+    numberOfChildren: toNumber(form.numberOfChildren.value),
+    child1Name: form.child1Name.value.trim(),
+    child1Age: toNumberOrNull(form.child1Age.value),
+    child2Name: form.child2Name.value.trim(),
+    child2Age: toNumberOrNull(form.child2Age.value),
+    child3Name: form.child3Name.value.trim(),
+    child3Age: toNumberOrNull(form.child3Age.value),
+    email: form.email.value.trim(),
+    phone: form.phone.value.trim(),
+    address: form.address.value.trim(),
+    rsvpStatus: form.rsvpStatus.value,
+    guestAttending: form.guestAttending.checked,
+    childrenAttending: toNumber(form.childrenAttending.value),
+    totalInParty: toNumber(form.totalInParty.value),
+    dietaryRestrictions: form.dietaryRestrictions.value.trim(),
+    specialAccommodations: form.specialAccommodations.value.trim(),
+    tableNumber: toNumber(form.tableNumber.value),
+    tableName: form.tableName.value.trim(),
+    seatingPriority: form.seatingPriority.value,
+    notes: form.notes.value.trim(),
+  });
 
   if (editingRow) {
-    editingRow.update({ ...editingRow.getData(), ...payload });
+    editingRow.update(record);
   } else {
-    const record = { id: `guest-${Date.now().toString(36)}`, ...payload };
     table.addData([record], true);
   }
 
   ui.modal.close();
-  ui.form.reset();
+  form.reset();
   editingRow = null;
+  refreshStats();
+  refreshKPIs();
   applyFilters();
 });
 
@@ -433,34 +605,103 @@ ui.modal?.addEventListener('close', () => {
 
 function openModal(row = null) {
   editingRow = row;
-  const data = row ? row.getData() : {
-    name: '',
-    email: '',
-    side: 'bride',
-    relationship: '',
-    familyName: '',
-    tableNumber: 0,
-    plusOnesAllowed: 0,
-    plusOneName: '',
-    rsvpStatus: 'none',
-    tags: [],
-    notes: '',
-  };
-
+  const data = row ? row.getData() : createBlankRecord();
   ui.modalTitle.textContent = row ? 'Edit guest' : 'Add guest';
-  ui.form.name.value = data.name || '';
-  ui.form.email.value = data.email || '';
-  ui.form.side.value = data.side || 'bride';
-  ui.form.relationship.value = data.relationship || '';
-  ui.form.familyName.value = data.familyName || '';
-  ui.form.tableNumber.value = Number(data.tableNumber || 0);
-  ui.form.plusOnesAllowed.value = Number(data.plusOnesAllowed || 0);
-  ui.form.plusOneName.value = data.plusOneName || '';
-  ui.form.rsvpStatus.value = data.rsvpStatus || 'none';
-  ui.form.tags.value = (data.tags || []).join(', ');
-  ui.form.notes.value = data.notes || '';
+
+  const form = ui.form;
+  form.actuallyInvited.checked = !!data.actuallyInvited;
+  form.guestId.value = data.guestId || '';
+  form.firstName.value = data.firstName || '';
+  form.lastName.value = data.lastName || '';
+  form.partyGroup.value = data.partyGroup || '';
+  form.relationship.value = data.relationship || '';
+  form.inviteCategory.value = data.inviteCategory || 'family';
+  form.plusOneInvited.checked = !!data.plusOneInvited;
+  form.plusOneFirstName.value = data.plusOneFirstName || '';
+  form.plusOneLastName.value = data.plusOneLastName || '';
+  form.plusOneAttending.checked = !!data.plusOneAttending;
+  form.numberOfChildren.value = data.numberOfChildren ?? 0;
+  form.child1Name.value = data.child1Name || '';
+  form.child1Age.value = data.child1Age ?? '';
+  form.child2Name.value = data.child2Name || '';
+  form.child2Age.value = data.child2Age ?? '';
+  form.child3Name.value = data.child3Name || '';
+  form.child3Age.value = data.child3Age ?? '';
+  form.childrenAttending.value = data.childrenAttending ?? 0;
+  form.email.value = data.email || '';
+  form.phone.value = data.phone || '';
+  form.address.value = data.address || '';
+  form.rsvpStatus.value = data.rsvpStatus || 'none';
+  form.guestAttending.checked = !!data.guestAttending;
+  form.totalInParty.value = data.totalInParty ?? '';
+  form.dietaryRestrictions.value = data.dietaryRestrictions || '';
+  form.specialAccommodations.value = data.specialAccommodations || '';
+  form.tableNumber.value = data.tableNumber ?? 0;
+  form.tableName.value = data.tableName || '';
+  form.seatingPriority.value = data.seatingPriority || 'standard';
+  form.notes.value = data.notes || '';
 
   ui.modal.showModal();
+}
+
+function createBlankRecord() {
+  return {
+    actuallyInvited: true,
+    guestId: '',
+    firstName: '',
+    lastName: '',
+    partyGroup: '',
+    relationship: '',
+    inviteCategory: 'family',
+    plusOneInvited: false,
+    plusOneFirstName: '',
+    plusOneLastName: '',
+    plusOneAttending: false,
+    numberOfChildren: 0,
+    child1Name: '', child1Age: null,
+    child2Name: '', child2Age: null,
+    child3Name: '', child3Age: null,
+    email: '',
+    phone: '',
+    address: '',
+    rsvpStatus: 'none',
+    guestAttending: false,
+    childrenAttending: 0,
+    totalInParty: 0,
+    dietaryRestrictions: '',
+    specialAccommodations: '',
+    tableNumber: 0,
+    tableName: '',
+    seatingPriority: 'standard',
+    notes: '',
+  };
+}
+
+function normalizePayload(record) {
+  const normalized = { ...record };
+  normalized.inviteCategory = (normalized.inviteCategory || 'family').toLowerCase();
+  normalized.rsvpStatus = (normalized.rsvpStatus || 'none').toLowerCase();
+  normalized.seatingPriority = (normalized.seatingPriority || 'standard').toLowerCase();
+  normalized.numberOfChildren = toNumber(normalized.numberOfChildren);
+  normalized.childrenAttending = toNumber(normalized.childrenAttending);
+  normalized.tableNumber = toNumber(normalized.tableNumber);
+  normalized.child1Age = toNumberOrNull(normalized.child1Age);
+  normalized.child2Age = toNumberOrNull(normalized.child2Age);
+  normalized.child3Age = toNumberOrNull(normalized.child3Age);
+
+  let total = toNumber(normalized.totalInParty);
+  if (!total) {
+    total = (normalized.guestAttending ? 1 : 0)
+      + (normalized.plusOneAttending ? 1 : 0)
+      + (normalized.childrenAttending || 0);
+    if (!total) {
+      total = (normalized.actuallyInvited ? 1 : 0)
+        + (normalized.plusOneInvited ? 1 : 0)
+        + (normalized.numberOfChildren || 0);
+    }
+  }
+  normalized.totalInParty = total;
+  return normalized;
 }
 
 // --- Import / Export --------------------------------------------------------
@@ -470,33 +711,20 @@ ui.import?.addEventListener('change', async event => {
   if (!file) return;
   const text = await file.text();
   const rows = csvParse(text);
-  const mapped = rows.map(r => ({
-    id: `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-    name: r.name || r.Name || '',
-    email: r.email || r.Email || '',
-    side: (r.side || r.Side || 'bride').toLowerCase(),
-    relationship: r.relationship || r.Relationship || '',
-    familyName: r.familyName || r.Family || '',
-    tableNumber: Number(r.tableNumber || r.Table || 0),
-    plusOnesAllowed: Number(r.plusOnesAllowed || r['plus-ones'] || r['PlusOnes'] || 0),
-    plusOneName: r.plusOneName || r['plusOne'] || '',
-    rsvpStatus: (r.rsvpStatus || r.RSVP || 'none').toLowerCase(),
-    tags: tagMutator(r.tags || r.Tags || ''),
-    notes: r.notes || r.Notes || '',
-  }));
-
+  const mapped = rows.map(mapCsvRow);
   table.addData(mapped, true);
   event.target.value = '';
-  applyFilters();
   alert(`Imported ${mapped.length} guest${mapped.length === 1 ? '' : 's'}.`);
+  refreshStats();
+  refreshKPIs();
 });
 
 ui.exportCSV?.addEventListener('click', () => {
-  table.download('csv', 'guest-planner.csv');
+  table.download('csv', 'guest-data.csv');
 });
 
 ui.exportXLSX?.addEventListener('click', () => {
-  table.download('xlsx', 'guest-planner.xlsx', { sheetName: 'Guests' });
+  table.download('xlsx', 'guest-data.xlsx', { sheetName: 'Guests' });
 });
 
 // --- Bulk delete ------------------------------------------------------------
@@ -508,10 +736,68 @@ function bulkDelete() {
   if (!rows.length) return;
   if (!confirm(`Delete ${rows.length} selected guest${rows.length === 1 ? '' : 's'}?`)) return;
   rows.forEach(row => row.delete());
-  applyFilters();
+  refreshStats();
+  refreshKPIs();
 }
 
-// --- CSV Parser -------------------------------------------------------------
+// --- CSV helpers ------------------------------------------------------------
+
+const csvFieldMap = new Map([
+  ['Actually Invited?', 'actuallyInvited'],
+  ['Guest_ID', 'guestId'],
+  ['First_Name', 'firstName'],
+  ['Last_Name', 'lastName'],
+  ['Party_Group', 'partyGroup'],
+  ['Relationship', 'relationship'],
+  ['Invite_Category', 'inviteCategory'],
+  ['Plus_One_Invited', 'plusOneInvited'],
+  ['Plus_One_First_Name', 'plusOneFirstName'],
+  ['Plus_One_Last_Name', 'plusOneLastName'],
+  ['Number_of_Children', 'numberOfChildren'],
+  ['Child_1_Name', 'child1Name'],
+  ['Child_1_Age', 'child1Age'],
+  ['Child_2_Name', 'child2Name'],
+  ['Child_2_Age', 'child2Age'],
+  ['Child_3_Name', 'child3Name'],
+  ['Child_3_Age', 'child3Age'],
+  ['Email', 'email'],
+  ['Phone', 'phone'],
+  ['Address', 'address'],
+  ['RSVP_Status', 'rsvpStatus'],
+  ['Guest_Attending', 'guestAttending'],
+  ['Plus_One_Attending', 'plusOneAttending'],
+  ['Children_Attending', 'childrenAttending'],
+  ['Total_in_Party', 'totalInParty'],
+  ['Dietary_Restrictions', 'dietaryRestrictions'],
+  ['Special_Accommodations', 'specialAccommodations'],
+  ['Table_Number', 'tableNumber'],
+  ['Table_Name', 'tableName'],
+  ['Seating_Priority', 'seatingPriority'],
+  ['Notes', 'notes'],
+]);
+
+function mapCsvRow(row) {
+  const record = createBlankRecord();
+  csvFieldMap.forEach((field, key) => {
+    if (key in row) record[field] = row[key];
+  });
+  record.id = `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  record.actuallyInvited = toBool(record.actuallyInvited);
+  record.plusOneInvited = toBool(record.plusOneInvited);
+  record.plusOneAttending = toBool(record.plusOneAttending);
+  record.guestAttending = toBool(record.guestAttending);
+  record.numberOfChildren = toNumber(record.numberOfChildren);
+  record.childrenAttending = toNumber(record.childrenAttending);
+  record.totalInParty = toNumber(record.totalInParty);
+  record.child1Age = toNumberOrNull(record.child1Age);
+  record.child2Age = toNumberOrNull(record.child2Age);
+  record.child3Age = toNumberOrNull(record.child3Age);
+  record.tableNumber = toNumber(record.tableNumber);
+  record.inviteCategory = (record.inviteCategory || 'family').toLowerCase();
+  record.seatingPriority = (record.seatingPriority || 'standard').toLowerCase();
+  record.rsvpStatus = (record.rsvpStatus || 'none').toLowerCase();
+  return normalizePayload(record);
+}
 
 function csvParse(text) {
   const rows = [];
@@ -557,7 +843,28 @@ function csvParse(text) {
   }
 
   const header = (rows.shift() || []).map(h => h.trim());
-  return rows
-    .filter(r => r.length)
-    .map(r => Object.fromEntries(header.map((h, idx) => [h, r[idx]])));
+  return rows.filter(r => r.length).map(r => Object.fromEntries(header.map((h, idx) => [h, r[idx]])));
 }
+
+function toBool(value) {
+  if (typeof value === 'boolean') return value;
+  if (value === undefined || value === null) return false;
+  const str = String(value).trim().toLowerCase();
+  return ['true', 'yes', 'y', '1', '✓'].includes(str);
+}
+
+function toNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function toNumberOrNull(value) {
+  if (value === '' || value === undefined || value === null) return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+// Initial render
+refreshStats();
+refreshKPIs();
+applyFilters();
