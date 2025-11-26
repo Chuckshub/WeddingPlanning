@@ -3,16 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mandy & Charlie — Guest Planner</title>
+  <title>Mandy & Charlie — Guest Data Studio</title>
   <meta name="description" content="A bright, wedding-themed guest planner for Mandy & Charlie." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E💒%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
-  <!-- Tabulator (open-source table library) for the guest planner (light theme) -->
+  <!-- Tabulator (open-source table library) for the data grid -->
   <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@5.6.0/dist/css/tabulator.min.css" />
   <script src="https://unpkg.com/tabulator-tables@5.6.0/dist/js/tabulator.min.js"></script>
+  <!-- SheetJS (xlsx) for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <header class="site-header light">
@@ -28,51 +30,36 @@
   </header>
 
   <main>
-    <!-- Analyst toolbar with KPI chips and controls -->
-    <section class="toolbar section">
+    <!-- Futuristic Data Studio toolbar -->
+    <section class="toolbar glass">
       <div class="container">
         <div class="toolbar-row">
-          <div class="kpis">
-            <div class="kpi"><div class="kpi-label">Guests</div><div class="kpi-value" id="kpi-total">0</div></div>
-            <div class="kpi"><div class="kpi-label">Families</div><div class="kpi-value" id="kpi-families">0</div></div>
-            <div class="kpi"><div class="kpi-label">Plus‑Ones</div><div class="kpi-value" id="kpi-plus">0</div></div>
-            <div class="kpi"><div class="kpi-label">RSVP ✓</div><div class="kpi-value" id="kpi-yes">0</div></div>
-            <div class="kpi"><div class="kpi-label">No / Pending</div><div class="kpi-value" id="kpi-no">0</div></div>
+          <div class="left">
+            <input id="global-search" class="search-xl" placeholder="Search anywhere ( / )" />
+            <div class="grouping">
+              <span class="label">Group by</span>
+              <button class="chip" data-group="none">None</button>
+              <button class="chip" data-group="familyName">Family</button>
+              <button class="chip" data-group="tableNumber">Table</button>
+              <button class="chip" data-group="side">Side</button>
+            </div>
           </div>
-          <div class="tools">
-            <button id="add-guest" class="btn primary">Add guest</button>
-            <button id="export-guests" class="btn">Export</button>
-            <label class="btn outline file">
-              Import CSV
-              <input id="import-guests" type="file" accept="text/csv" hidden />
-            </label>
-            <select id="density" class="density">
-              <option value="cozy">Cozy</option>
-              <option value="compact">Compact</option>
-            </select>
+          <div class="right">
+            <button id="add-guest" class="btn primary">New row (N)</button>
+            <button id="bulk-delete" class="btn danger">Delete (⌫)</button>
+            <label class="btn outline file">Import CSV<input id="import-guests" type="file" accept="text/csv" hidden /></label>
+            <button id="export-csv" class="btn">CSV</button>
+            <button id="export-xlsx" class="btn">Excel</button>
+            <select id="density" class="density"><option value="cozy">Cozy</option><option value="compact">Compact</option></select>
           </div>
-        </div>
-        <div class="views">
-          <span class="views-label">Saved views:</span>
-          <button data-view="all" class="chip active">All</button>
-          <button data-view="bride" class="chip">Bride side</button>
-          <button data-view="groom" class="chip">Groom side</button>
-          <button data-view="plus" class="chip">Plus‑ones</button>
-          <button data-view="unassigned" class="chip">No table</button>
-          <label class="inline" style="margin-left:auto">
-            <input id="group-by" type="checkbox" /> Group by family
-          </label>
-          <label class="inline">
-            <input id="group-by-table" type="checkbox" /> Group by table
-          </label>
         </div>
       </div>
     </section>
 
-    <section class="planner section">
+    <section class="planner fullbleed">
       <div class="container">
-        <div id="guest-table" class="guest-table" aria-live="polite"></div>
-        <p class="hint">Tip: Shift‑click to multi‑sort. Use the column menu to show/hide fields.</p>
+        <div id="guest-table" class="guest-table sheet" aria-live="polite"></div>
+        <p class="hint">Tips: Shift‑click to multi‑sort • Drag headers to reorder • Right‑click for row menu • Cmd/Ctrl+C/V to copy/paste like Excel.</p>
       </div>
     </section>
   </main>
@@ -137,6 +124,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="./planner.js"></script>
+  <script type="module" src="./grid.js"></script>
 </body>
 </html>
