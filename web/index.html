@@ -4,122 +4,213 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mandy & Charlie — Guest Data Studio</title>
-  <meta name="description" content="A bright, wedding-themed guest planner for Mandy & Charlie." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E💒%3C/text%3E%3C/svg%3E" />
+  <meta name="description" content="Futuristic guest planning workspace for Mandy & Charlie's wedding." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.88em' font-size='88'%3E✨%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
-  <!-- Tabulator (open-source table library) for the data grid -->
   <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@5.6.0/dist/css/tabulator.min.css" />
   <script src="https://unpkg.com/tabulator-tables@5.6.0/dist/js/tabulator.min.js"></script>
-  <!-- SheetJS (xlsx) for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <header class="site-header light">
-    <nav class="nav container">
+  <div class="app-shell">
+    <header class="command-bar">
       <div class="brand">
-        <span class="logo" aria-hidden="true">💐</span>
-        <span class="brand-text serif">Mandy & Charlie</span>
-      </div>
-      <div class="nav-aux">
-        <span class="date serif" aria-label="Wedding date">June 14, 2026 • Austin, TX</span>
-      </div>
-    </nav>
-  </header>
-
-  <main>
-    <!-- Futuristic Data Studio toolbar -->
-    <section class="toolbar glass">
-      <div class="container">
-        <div class="toolbar-row">
-          <div class="left">
-            <input id="global-search" class="search-xl" placeholder="Search anywhere ( / )" />
-            <div class="grouping">
-              <span class="label">Group by</span>
-              <button class="chip" data-group="none">None</button>
-              <button class="chip" data-group="familyName">Family</button>
-              <button class="chip" data-group="tableNumber">Table</button>
-              <button class="chip" data-group="side">Side</button>
-            </div>
-          </div>
-          <div class="right">
-            <button id="add-guest" class="btn primary">New row (N)</button>
-            <button id="bulk-delete" class="btn danger">Delete (⌫)</button>
-            <label class="btn outline file">Import CSV<input id="import-guests" type="file" accept="text/csv" hidden /></label>
-            <button id="export-csv" class="btn">CSV</button>
-            <button id="export-xlsx" class="btn">Excel</button>
-            <select id="density" class="density"><option value="cozy">Cozy</option><option value="compact">Compact</option></select>
-          </div>
+        <div class="brand-icon" aria-hidden="true">∞</div>
+        <div class="brand-copy">
+          <span class="brand-title">Guest Data Studio</span>
+          <span class="brand-sub">Mandy & Charlie · June 14, 2026 · Austin, TX</span>
         </div>
       </div>
-    </section>
-
-    <section class="planner fullbleed">
-      <div class="container">
-        <div id="guest-table" class="guest-table sheet" aria-live="polite"></div>
-        <p class="hint">Tips: Shift‑click to multi‑sort • Drag headers to reorder • Right‑click for row menu • Cmd/Ctrl+C/V to copy/paste like Excel.</p>
+      <div class="command-meta">
+        <span class="badge">Realtime planning workspace</span>
       </div>
-    </section>
-  </main>
+    </header>
 
-  <footer class="site-footer light">
-    <div class="container">
-      <p class="muted">Made with love for Mandy & Charlie.</p>
-    </div>
-  </footer>
+    <main class="workspace">
+      <aside class="control-panel">
+        <section class="panel snapshot">
+          <header class="panel-header"><h2>Snapshot</h2></header>
+          <div class="stat-grid">
+            <article class="stat">
+              <span class="stat-label">Guests</span>
+              <span class="stat-value" id="stat-guests">0</span>
+            </article>
+            <article class="stat">
+              <span class="stat-label">Seats needed</span>
+              <span class="stat-value" id="stat-seats">0</span>
+            </article>
+            <article class="stat">
+              <span class="stat-label">Unassigned tables</span>
+              <span class="stat-value" id="stat-unassigned">0</span>
+            </article>
+            <article class="stat">
+              <span class="stat-label">Plus-one seats</span>
+              <span class="stat-value" id="stat-plus">0</span>
+            </article>
+          </div>
+        </section>
 
-  <!-- Add/Edit Guest Modal -->
+        <section class="panel">
+          <header class="panel-header"><h2>Quick views</h2></header>
+          <div class="chip-list" id="view-chips">
+            <button class="chip active" data-view="all">All guests</button>
+            <button class="chip" data-view="bride">Bride side</button>
+            <button class="chip" data-view="groom">Groom side</button>
+            <button class="chip" data-view="both">Both sides</button>
+            <button class="chip" data-view="plus">Has plus-one</button>
+            <button class="chip" data-view="vip">VIP</button>
+            <button class="chip" data-view="needs-table">Needs table</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header class="panel-header"><h2>Filters</h2></header>
+          <div class="filter-group">
+            <label class="field">
+              <span>Side</span>
+              <select id="filter-side">
+                <option value="all">All sides</option>
+                <option value="bride">Bride</option>
+                <option value="groom">Groom</option>
+                <option value="both">Both</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>RSVP status</span>
+              <select id="filter-rsvp">
+                <option value="all">All responses</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+                <option value="maybe">Maybe</option>
+                <option value="none">No response</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Table status</span>
+              <select id="filter-table">
+                <option value="all">All tables</option>
+                <option value="assigned">Assigned</option>
+                <option value="unassigned">Unassigned</option>
+              </select>
+            </label>
+            <button class="btn ghost" id="clear-filters">Clear filters</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header class="panel-header"><h2>Grouping</h2></header>
+          <div class="chip-list grouping" id="grouping-chips">
+            <button class="chip active" data-group="none">None</button>
+            <button class="chip" data-group="familyName">Family</button>
+            <button class="chip" data-group="tableNumber">Table</button>
+            <button class="chip" data-group="side">Side</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <header class="panel-header"><h2>Columns</h2></header>
+          <div class="column-manager" id="column-manager"></div>
+        </section>
+      </aside>
+
+      <section class="grid-area">
+        <div class="grid-toolbar">
+          <div class="toolbar-left">
+            <label class="search-field" aria-label="Global search">
+              <span class="icon" aria-hidden="true">⌘</span>
+              <input id="global-search" type="search" placeholder="Search name, email, table, notes… ( / )" autocomplete="off" />
+            </label>
+            <div class="active-filters" id="active-filters" aria-live="polite"></div>
+          </div>
+          <div class="toolbar-right">
+            <label class="btn outline file">
+              Import CSV
+              <input id="import-guests" type="file" accept="text/csv" hidden />
+            </label>
+            <button class="btn outline" id="export-csv">Export CSV</button>
+            <button class="btn outline" id="export-xlsx">Export Excel</button>
+            <select id="density" class="density">
+              <option value="cozy">Cozy rows</option>
+              <option value="compact">Compact rows</option>
+            </select>
+            <button class="btn" id="bulk-delete" disabled>Delete</button>
+            <button class="btn primary" id="add-guest">New guest</button>
+          </div>
+        </div>
+
+        <div id="guest-table" class="guest-table table-density-cozy" aria-live="polite"></div>
+        <p class="hint">Pro tips: shift-click to multi-sort · drag headers to reorder · right-click for row menu · copy/paste works just like Excel.</p>
+      </section>
+    </main>
+  </div>
+
   <dialog id="guest-modal" class="modal light">
     <form method="dialog" class="modal-box" id="guest-form">
       <header class="modal-header">
         <h3 id="modal-title" class="serif">Add guest</h3>
         <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
       </header>
-      <div class="modal-body">
-        <div class="grid-2">
-          <label class="field">
-            <span>Full name</span>
-            <input name="name" required placeholder="Guest name" />
-          </label>
-          <label class="field">
-            <span>Side</span>
-            <select name="side">
-              <option value="bride">Bride</option>
-              <option value="groom">Groom</option>
-              <option value="both">Both</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Relationship</span>
-            <input name="relationship" placeholder="Friend, Family, Coworker…" />
-          </label>
-          <label class="field">
-            <span>Family name (for grouping)</span>
-            <input name="familyName" placeholder="e.g., Smith" />
-          </label>
-          <label class="field">
-            <span>Table #</span>
-            <input name="tableNumber" type="number" min="0" placeholder="0 = unassigned" />
-          </label>
-          <label class="field">
-            <span>Plus‑ones allowed</span>
-            <input name="plusOnesAllowed" type="number" min="0" value="0" />
-          </label>
-          <label class="field full">
-            <span>Plus one name (if any)</span>
-            <input name="plusOneName" placeholder="Name of plus one" />
-          </label>
-          <label class="field full">
-            <span>Notes</span>
-            <textarea name="notes" rows="2" placeholder="Dietary needs, seating notes, etc."></textarea>
-          </label>
-        </div>
+      <div class="modal-body grid-2">
+        <label class="field">
+          <span>Full name</span>
+          <input name="name" required placeholder="Guest name" />
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input name="email" type="email" placeholder="guest@email.com" />
+        </label>
+        <label class="field">
+          <span>Side</span>
+          <select name="side">
+            <option value="bride">Bride</option>
+            <option value="groom">Groom</option>
+            <option value="both">Both</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Relationship</span>
+          <input name="relationship" placeholder="Family, friend, coworker…" />
+        </label>
+        <label class="field">
+          <span>Family name</span>
+          <input name="familyName" placeholder="e.g., Smith" />
+        </label>
+        <label class="field">
+          <span>Table # (0 = unassigned)</span>
+          <input name="tableNumber" type="number" min="0" value="0" />
+        </label>
+        <label class="field">
+          <span>Plus-ones allowed</span>
+          <input name="plusOnesAllowed" type="number" min="0" value="0" />
+        </label>
+        <label class="field">
+          <span>Plus-one name</span>
+          <input name="plusOneName" placeholder="Leave blank if unknown" />
+        </label>
+        <label class="field">
+          <span>RSVP status</span>
+          <select name="rsvpStatus">
+            <option value="none">No response</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <option value="maybe">Maybe</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Tags (comma separated)</span>
+          <input name="tags" placeholder="VIP, family, vendor" />
+        </label>
+        <label class="field full">
+          <span>Notes</span>
+          <textarea name="notes" rows="2" placeholder="Dietary needs, travel info, gifts, etc."></textarea>
+        </label>
       </div>
       <footer class="modal-footer">
-        <button class="btn" value="cancel">Cancel</button>
-        <button class="btn primary" id="save-guest" value="default">Save</button>
+        <button class="btn ghost" value="cancel">Cancel</button>
+        <button class="btn primary" id="save-guest" value="default">Save guest</button>
       </footer>
     </form>
   </dialog>
