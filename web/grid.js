@@ -1,4 +1,5 @@
-// grid.js — Guest Data Studio (Firebase + CSV, big-data grid)
+// grid.js — Guest Data Studio (Firebase + CSV, analytics grid)
+// Futuristic spreadsheet experience with Mandy & Charlie's full guest schema.
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -46,6 +47,7 @@ const state = {
     rsvp: 'all',
     table: 'all',
   },
+  pendingRecords: null,
 };
 
 const sampleGuests = [
@@ -175,23 +177,28 @@ const sampleGuests = [
   },
 ];
 
+let tableReady = false;
+let editingRow = null;
+
 const table = new Tabulator(ui.tableEl, {
   index: 'id',
   height: '72vh',
   data: [],
   layout: 'fitDataStretch',
   reactiveData: true,
-  selectable: true,
+  selectableRows: true,
   movableColumns: true,
   resizableRows: false,
   clipboard: true,
+  persistenceMode: true,
+  persistenceID: 'guest-data-studio-v1',
   placeholder: 'No guests yet — press “New guest” or import a CSV.',
+  columnDefaults: { headerHozAlign: 'left', headerSort: true, vertAlign: 'middle' },
   groupHeader: (value, count, rows) => {
     const seats = rows.reduce((sum, row) => sum + (Number(row.totalInParty) || fallbackPartySize(row)), 0);
     const label = value ? escapeHtml(String(value)) : 'Unassigned';
     return `${label} · ${count} guest${count === 1 ? '' : 's'} · ${seats} seat${seats === 1 ? '' : 's'}`;
   },
-  columnDefaults: { headerHozAlign: 'left', headerSort: true, vertAlign: 'middle' },
   columns: [
     {
       title: 'Invitation',
@@ -200,14 +207,15 @@ const table = new Tabulator(ui.tableEl, {
         { title: 'Guest ID', field: 'guestId', editor: 'input', headerFilter: 'input', width: 130 },
         { title: 'Party Group', field: 'partyGroup', editor: 'input', headerFilter: 'input', width: 160 },
         { title: 'Relationship', field: 'relationship', editor: 'input', headerFilter: 'input', width: 160 },
-        { title: 'Invite Category', field: 'inviteCategory', editor: 'select', headerFilter: true, editorParams: { values: { family: 'Family', friend: 'Friend', vendor: 'Vendor', vip: 'VIP', other: 'Other' } }, width: 150 },
+        { title: 'Invite Category', field: 'inviteCategory', editor: 'list', headerFilter: true, editorParams: { values: { family: 'Family', friend: 'Friend', vendor: 'Vendor', vip: 'VIP', other: 'Other' } }, width: 150 },
       ],
     },
     {
       title: 'Primary Guest',
+      frozen: true,
       columns: [
-        { title: 'First Name', field: 'firstName', editor: 'input', headerFilter: 'input', widthGrow: 1.2, frozen: true },
-        { title: 'Last Name', field: 'lastName', editor: 'input', headerFilter: 'input', widthGrow: 1.2, frozen: true },
+        { title: 'First Name', field: 'firstName', editor: 'input', headerFilter: 'input', widthGrow: 1.2 },
+        { title: 'Last Name', field: 'lastName', editor: 'input', headerFilter: 'input', widthGrow: 1.2 },
         { title: 'Email', field: 'email', editor: 'input', headerFilter: 'input', widthGrow: 1.6 },
         { title: 'Phone', field: 'phone', editor: 'input', width: 160 },
         { title: 'Address', field: 'address', editor: 'textarea', widthGrow: 2.5 },
@@ -236,7 +244,7 @@ const table = new Tabulator(ui.tableEl, {
     {
       title: 'Attendance & Comfort',
       columns: [
-        { title: 'RSVP Status', field: 'rsvpStatus', width: 150, hozAlign: 'center', editor: 'select', editorParams: { values: { none: 'No response', yes: 'Yes', no: 'No', maybe: 'Maybe' } }, formatter: rsvpFormatter },
+        { title: 'RSVP Status', field: 'rsvpStatus', width: 150, hozAlign: 'center', editor: 'list', editorParams: { values: { none: 'No response', yes: 'Yes', no: 'No', maybe: 'Maybe' } }, formatter: rsvpFormatter },
         { title: 'Guest Attending', field: 'guestAttending', width: 150, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
         { title: 'Plus One Attending', field: 'plusOneAttending', width: 170, hozAlign: 'center', formatter: 'tickCross', editor: 'tickCross' },
         { title: 'Children Attending', field: 'childrenAttending', width: 170, hozAlign: 'center', editor: 'number' },
@@ -250,7 +258,7 @@ const table = new Tabulator(ui.tableEl, {
       columns: [
         { title: 'Table Number', field: 'tableNumber', width: 140, hozAlign: 'center', editor: 'number' },
         { title: 'Table Name', field: 'tableName', editor: 'input', widthGrow: 1.2 },
-        { title: 'Seating Priority', field: 'seatingPriority', editor: 'select', editorParams: { values: { high: 'High', standard: 'Standard', low: 'Low' } }, width: 150 },
+        { title: 'Seating Priority', field: 'seatingPriority', editor: 'list', editorParams: { values: { high: 'High', standard: 'Standard', low: 'Low' } }, width: 150 },
       ],
     },
     { title: 'Notes', field: 'notes', editor: 'textarea', widthGrow: 2.5 },
@@ -273,6 +281,52 @@ const table = new Tabulator(ui.tableEl, {
   ],
 });
 
+let tableReady = false;
+
+table.on('tableBuilt', () => {
+  tableReady = true;
+  renderColumnManager();
+  if (state.pendingRecords) {
+    const records = state.pendingRecords;
+    state.pendingRecords = null;
+    table.replaceData(records).then(() => applyFilters());
+  } else {
+    applyFilters();
+  }
+});
+
+table.on('columnVisibilityChanged', () => {
+  if (tableReady) renderColumnManager();
+});
+
+table.on('rowSelectionChanged', rows => {
+  if (ui.del) ui.del.disabled = rows.length === 0;
+});
+
+table.on('dataProcessed', () => {
+  refreshStats();
+  refreshKPIs();
+});
+
+table.on('rowAdded', () => {
+  refreshStats();
+  refreshKPIs();
+});
+
+table.on('rowDeleted', () => {
+  refreshStats();
+  refreshKPIs();
+  applyFilters();
+});
+
+table.on('cellEdited', () => {
+  refreshStats();
+  refreshKPIs();
+  applyFilters();
+});
+
+table.on('rowDblClick', (e, row) => openModal(row));
+
 // --- Firebase bootstrap ----------------------------------------------------
 
 init();
@@ -287,7 +341,10 @@ async function init() {
 async function initFirebase() {
   try {
     const res = await fetch('/api/firebase-config');
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.info('[Guest Studio] Firebase config not found (404). Running in demo mode.');
+      return false;
+    }
     const config = await res.json();
     if (!config?.apiKey) return false;
 
@@ -328,8 +385,8 @@ function subscribeToFirestore() {
   firebaseState.unsubscribe?.();
   const ref = collection(firebaseState.db, 'guests');
   firebaseState.unsubscribe = onSnapshot(ref, snapshot => {
-    const records = snapshot.docs.map(deserializeDoc);
-    setData(records.map(normalizePayload));
+    const records = snapshot.docs.map(deserializeDoc).map(normalizePayload);
+    setData(records);
   }, err => console.error('Firestore listener error:', err));
 }
 
@@ -372,12 +429,10 @@ function deserializeDoc(docSnap) {
   };
 }
 
-// --- Data helpers ----------------------------------------------------------
-
 function setData(records) {
-  table.replaceData(records).then(() => {
-    applyFilters();
-  });
+  state.pendingRecords = records;
+  if (!tableReady) return;
+  table.replaceData(records).then(() => applyFilters());
 }
 
 function docIdFromRecord(record) {
@@ -465,23 +520,6 @@ function normalizePayload(record = {}) {
 
   return normalized;
 }
-async function handleRowDelete(row) {
-  if (!row) return;
-  if (!confirm('Delete this guest?')) return;
-  if (firebaseState.enabled) {
-    try {
-      await deleteFromFirestore(row.getData().id);
-    } catch (err) {
-      console.error('Delete failed', err);
-      alert('Failed to delete guest. Check console for details.');
-    }
-  } else {
-    row.delete();
-    refreshStats();
-    refreshKPIs();
-    table.refreshFilter();
-  }
-}
 
 function createBlankRecord() {
   return {
@@ -520,24 +558,26 @@ function createBlankRecord() {
 
 // --- UI interactions -------------------------------------------------------
 
-ui.density?.addEventListener('change', () => {
-  const compact = ui.density.value === 'compact';
+function applyDensity() {
+  const compact = ui.density?.value === 'compact';
   ui.tableEl.classList.toggle('table-density-compact', compact);
   ui.tableEl.classList.toggle('table-density-cozy', !compact);
-  table.redraw(true);
-});
-ui.density && ui.density.dispatchEvent(new Event('change'));
+  if (tableReady) table.redraw(true);
+}
+
+ui.density?.addEventListener('change', applyDensity);
+applyDensity();
 
 ui.groupChips.forEach(chip => {
   chip.addEventListener('click', () => {
     ui.groupChips.forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
-    const group = chip.dataset.group;
+    const group = chip.dataset.group || 'none';
+    state.grouping = group;
+    if (!tableReady) return;
     table.setGroupBy(group === 'none' ? false : group);
   });
 });
-
-table.setGroupBy(false);
 
 ui.viewChips.forEach(chip => {
   chip.addEventListener('click', () => {
@@ -579,8 +619,8 @@ ui.search?.addEventListener('input', e => {
 });
 
 window.addEventListener('keydown', e => {
-  const targetTag = document.activeElement?.tagName;
-  const typing = targetTag === 'INPUT' || targetTag === 'TEXTAREA';
+  const activeTag = document.activeElement?.tagName;
+  const typing = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
   if (e.key === '/' && !typing) {
     e.preventDefault();
     ui.search?.focus();
@@ -593,6 +633,152 @@ window.addEventListener('keydown', e => {
     if (!ui.del?.disabled) bulkDelete();
   }
 });
+
+// --- Filtering & stats -----------------------------------------------------
+
+function matchesQuickView(guest, view) {
+  switch (view) {
+    case 'family':
+      return (guest.inviteCategory || '').toLowerCase() === 'family';
+    case 'friends':
+      return (guest.inviteCategory || '').toLowerCase() === 'friend';
+    case 'vip':
+      return (guest.seatingPriority || '').toLowerCase() === 'high' || (guest.inviteCategory || '').toLowerCase() === 'vip';
+    case 'needs-table':
+      return Number(guest.tableNumber || 0) === 0;
+    default:
+      return true;
+  }
+}
+
+function applyFilters() {
+  if (!tableReady) return;
+  const { search, view, category, rsvp, table: tableStatus } = state.filters;
+  table.clearFilter(true);
+  table.setFilter((data) => {
+    const guest = data;
+    if (view !== 'all' && !matchesQuickView(guest, view)) return false;
+    if (category !== 'all' && (guest.inviteCategory || '').toLowerCase() !== category) return false;
+    if (rsvp !== 'all' && (guest.rsvpStatus || 'none').toLowerCase() !== rsvp) return false;
+    if (tableStatus === 'assigned' && !Number(guest.tableNumber || 0)) return false;
+    if (tableStatus === 'unassigned' && Number(guest.tableNumber || 0)) return false;
+
+    if (search) {
+      const haystack = [
+        guest.firstName,
+        guest.lastName,
+        guest.partyGroup,
+        guest.relationship,
+        guest.inviteCategory,
+        guest.plusOneFirstName,
+        guest.plusOneLastName,
+        guest.email,
+        guest.phone,
+        guest.address,
+        guest.dietaryRestrictions,
+        guest.specialAccommodations,
+        guest.tableName,
+        guest.notes,
+      ]
+        .join(' ')
+        .toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+
+  renderActiveFilters();
+  refreshStats();
+  refreshKPIs();
+}
+
+function renderActiveFilters() {
+  if (!ui.activeFilters) return;
+  ui.activeFilters.innerHTML = '';
+
+  const tokens = [];
+  const { search, view, category, rsvp, table } = state.filters;
+
+  const viewLabels = {
+    family: 'Family view',
+    friends: 'Friends view',
+    vip: 'VIP priority',
+    'needs-table': 'Needs table',
+  };
+
+  if (view !== 'all') tokens.push(viewLabels[view] || view);
+  if (category !== 'all') tokens.push(`Category · ${titleCase(category)}`);
+  if (rsvp !== 'all') tokens.push(`RSVP · ${titleCase(rsvp)}`);
+  if (table !== 'all') tokens.push(table === 'assigned' ? 'Table · Assigned' : 'Table · Unassigned');
+  if (search) tokens.push(`Search · "${search}"`);
+
+  tokens.forEach(token => {
+    const span = document.createElement('span');
+    span.className = 'filter-token';
+    span.textContent = token;
+    ui.activeFilters.appendChild(span);
+  });
+}
+
+function refreshStats() {
+  if (!tableReady) return;
+  const rows = table.getData('active');
+  const totalGuests = rows.length;
+  const totalSeats = rows.reduce((sum, guest) => sum + (Number(guest.totalInParty) || fallbackPartySize(guest)), 0);
+  const plusSeats = rows.reduce((sum, guest) => sum + (guest.plusOneInvited ? 1 : 0), 0);
+  const unassigned = rows.filter(guest => Number(guest.tableNumber || 0) === 0).length;
+
+  if (ui.stats.guests) ui.stats.guests.textContent = totalGuests;
+  if (ui.stats.seats) ui.stats.seats.textContent = totalSeats;
+  if (ui.stats.plus) ui.stats.plus.textContent = plusSeats;
+  if (ui.stats.unassigned) ui.stats.unassigned.textContent = unassigned;
+}
+
+const kpiTotalEl = document.getElementById('kpi-total');
+const kpiFamiliesEl = document.getElementById('kpi-families');
+const kpiPlusEl = document.getElementById('kpi-plus');
+const kpiYesEl = document.getElementById('kpi-yes');
+const kpiNoEl = document.getElementById('kpi-no');
+
+function refreshKPIs() {
+  if (!tableReady) return;
+  const rows = table.getData('active');
+  const families = new Set(rows.map(guest => (guest.partyGroup || `${guest.lastName || ''} family`).trim()).filter(Boolean)).size;
+  const plusInvited = rows.reduce((sum, guest) => sum + (guest.plusOneInvited ? 1 : 0), 0);
+  const yesCount = rows.filter(row => (row.rsvpStatus || '').toLowerCase() === 'yes').length;
+  const pending = rows.length - yesCount;
+
+  if (kpiTotalEl) kpiTotalEl.textContent = rows.length;
+  if (kpiFamiliesEl) kpiFamiliesEl.textContent = families;
+  if (kpiPlusEl) kpiPlusEl.textContent = plusInvited;
+  if (kpiYesEl) kpiYesEl.textContent = yesCount;
+  if (kpiNoEl) kpiNoEl.textContent = pending;
+}
+
+// --- Column manager --------------------------------------------------------
+
+function renderColumnManager() {
+  if (!ui.columnManager || !tableReady) return;
+  ui.columnManager.innerHTML = '';
+  table.getColumns().forEach(column => {
+    const def = column.getDefinition();
+    if (!def.field || def.field.startsWith('_')) return;
+    const wrapper = document.createElement('label');
+    wrapper.className = 'column-toggle';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = column.isVisible();
+    input.addEventListener('change', () => {
+      input.checked ? column.show() : column.hide();
+    });
+    const span = document.createElement('span');
+    span.textContent = def.title;
+    wrapper.append(input, span);
+    ui.columnManager.appendChild(wrapper);
+  });
+}
+
+// --- Modal -----------------------------------------------------------------
 
 ui.add?.addEventListener('click', () => openModal());
 
@@ -654,7 +840,7 @@ ui.form?.addEventListener('submit', async event => {
   editingRow = null;
   refreshStats();
   refreshKPIs();
-  table.refreshFilter();
+  applyFilters();
 });
 
 ui.modal?.addEventListener('close', () => {
@@ -662,42 +848,6 @@ ui.modal?.addEventListener('close', () => {
   ui.form?.reset();
 });
 
-ui.import?.addEventListener('change', async event => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  const text = await file.text();
-  const rows = csvParse(text);
-  const mapped = rows.map(mapCsvRow).map(normalizePayload);
-
-  try {
-    if (firebaseState.enabled) {
-      await batchImport(mapped);
-    } else {
-      table.addData(mapped, true);
-      refreshStats();
-      refreshKPIs();
-      table.refreshFilter();
-    }
-    alert(`Imported ${mapped.length} guest${mapped.length === 1 ? '' : 's'}.`);
-  } catch (err) {
-    console.error('CSV import failed', err);
-    alert('Import failed. Check console for details.');
-  } finally {
-    event.target.value = '';
-  }
-});
-
-ui.exportCSV?.addEventListener('click', () => {
-  table.download('csv', 'guest-data.csv');
-});
-
-ui.exportXLSX?.addEventListener('click', () => {
-  table.download('xlsx', 'guest-data.xlsx', { sheetName: 'Guests' });
-});
-
-ui.del?.addEventListener('click', bulkDelete);
-
-let editingRow = null;
 function openModal(row = null) {
   editingRow = row;
   const data = normalizePayload(row ? row.getData() : createBlankRecord());
@@ -727,7 +877,7 @@ function openModal(row = null) {
   form.address.value = data.address || '';
   form.rsvpStatus.value = data.rsvpStatus || 'none';
   form.guestAttending.checked = !!data.guestAttending;
-  form.totalInParty.value = data.totalInParty ?? '';
+  form.totalInParty.value = data.totalInParty || '';
   form.dietaryRestrictions.value = data.dietaryRestrictions || '';
   form.specialAccommodations.value = data.specialAccommodations || '';
   form.tableNumber.value = data.tableNumber ?? 0;
@@ -737,152 +887,6 @@ function openModal(row = null) {
 
   ui.modal.showModal();
 }
-
-// --- Table events ----------------------------------------------------------
-
-table.on('rowSelectionChanged', rows => {
-  if (ui.del) ui.del.disabled = rows.length === 0;
-});
-
-table.on('rowDblClick', (e, row) => openModal(row));
-
-table.on('cellEdited', async cell => {
-  const rowData = normalizePayload(cell.getRow().getData());
-  if (firebaseState.enabled) {
-    try {
-      await saveToFirestore(rowData);
-    } catch (err) {
-      console.error('Failed to sync edit to Firestore', err);
-      alert('Failed to sync change. Check console for details.');
-    }
-  } else {
-    cell.getRow().update(rowData);
-  }
-  refreshStats();
-  refreshKPIs();
-  table.refreshFilter();
-});
-
-table.on('columnVisibilityChanged', renderColumnManager);
-renderColumnManager();
-
-// --- Filters & stats -------------------------------------------------------
-
-function matchesQuickView(data, view) {
-  switch (view) {
-    case 'family':
-      return (data.inviteCategory || '').toLowerCase() === 'family';
-    case 'friends':
-      return (data.inviteCategory || '').toLowerCase() === 'friend';
-    case 'vip':
-      return (data.inviteCategory || '').toLowerCase() === 'vip' || (data.seatingPriority || '') === 'high';
-    case 'needs-table':
-      return Number(data.tableNumber || 0) === 0;
-    default:
-      return true;
-  }
-}
-
-function applyFilters() {
-  table.setFilter(row => {
-    const data = row.getData();
-    const { search, view, category, rsvp, table: tableStatus } = state.filters;
-
-    if (view !== 'all' && !matchesQuickView(data, view)) return false;
-    if (category !== 'all' && (data.inviteCategory || '').toLowerCase() !== category) return false;
-    if (rsvp !== 'all' && (data.rsvpStatus || 'none').toLowerCase() !== rsvp) return false;
-    if (tableStatus === 'assigned' && !Number(data.tableNumber || 0)) return false;
-    if (tableStatus === 'unassigned' && Number(data.tableNumber || 0)) return false;
-
-    if (search) {
-      const haystack = [
-        data.firstName,
-        data.lastName,
-        data.partyGroup,
-        data.relationship,
-        data.inviteCategory,
-        data.plusOneFirstName,
-        data.plusOneLastName,
-        data.email,
-        data.phone,
-        data.address,
-        data.dietaryRestrictions,
-        data.specialAccommodations,
-        data.tableName,
-        data.notes,
-      ].join(' ').toLowerCase();
-      if (!haystack.includes(search)) return false;
-    }
-    return true;
-  });
-
-  renderActiveFilters();
-  refreshStats();
-  refreshKPIs();
-}
-
-function renderActiveFilters() {
-  if (!ui.activeFilters) return;
-  ui.activeFilters.innerHTML = '';
-
-  const tokens = [];
-  const { search, view, category, rsvp, table } = state.filters;
-
-  const viewLabels = {
-    family: 'Family view',
-    friends: 'Friends view',
-    vip: 'VIP priority',
-    'needs-table': 'Needs table',
-  };
-
-  if (view !== 'all') tokens.push(viewLabels[view] || view);
-  if (category !== 'all') tokens.push(`Category · ${titleCase(category)}`);
-  if (rsvp !== 'all') tokens.push(`RSVP · ${titleCase(rsvp)}`);
-  if (table !== 'all') tokens.push(table === 'assigned' ? 'Table · Assigned' : 'Table · Unassigned');
-  if (search) tokens.push(`Search · "${search}"`);
-
-  tokens.forEach(token => {
-    const span = document.createElement('span');
-    span.className = 'filter-token';
-    span.textContent = token;
-    ui.activeFilters.appendChild(span);
-  });
-}
-
-function refreshStats() {
-  const rows = table.getData('active');
-  const totalGuests = rows.length;
-  const totalSeats = rows.reduce((sum, guest) => sum + (Number(guest.totalInParty) || fallbackPartySize(guest)), 0);
-  const plusSeats = rows.reduce((sum, guest) => sum + (Number(guest.plusOneInvited) ? 1 : 0), 0);
-  const unassigned = rows.filter(guest => Number(guest.tableNumber || 0) === 0).length;
-
-  if (ui.stats.guests) ui.stats.guests.textContent = totalGuests;
-  if (ui.stats.seats) ui.stats.seats.textContent = totalSeats;
-  if (ui.stats.plus) ui.stats.plus.textContent = plusSeats;
-  if (ui.stats.unassigned) ui.stats.unassigned.textContent = unassigned;
-}
-
-const kpiTotalEl = document.getElementById('kpi-total');
-const kpiFamiliesEl = document.getElementById('kpi-families');
-const kpiPlusEl = document.getElementById('kpi-plus');
-const kpiYesEl = document.getElementById('kpi-yes');
-const kpiNoEl = document.getElementById('kpi-no');
-
-function refreshKPIs() {
-  const rows = table.getData('active');
-  const families = new Set(rows.map(guest => (guest.partyGroup || `${guest.lastName || ''} family`).trim()).filter(Boolean)).size;
-  const plusInvited = rows.reduce((sum, guest) => sum + (guest.plusOneInvited ? 1 : 0), 0);
-  const yesCount = rows.filter(row => (row.rsvpStatus || '').toLowerCase() === 'yes').length;
-  const pending = rows.length - yesCount;
-
-  if (kpiTotalEl) kpiTotalEl.textContent = rows.length;
-  if (kpiFamiliesEl) kpiFamiliesEl.textContent = families;
-  if (kpiPlusEl) kpiPlusEl.textContent = plusInvited;
-  if (kpiYesEl) kpiYesEl.textContent = yesCount;
-  if (kpiNoEl) kpiNoEl.textContent = pending;
-}
-
-// --- Persistence helpers ---------------------------------------------------
 
 async function saveToFirestore(record, { create = false } = {}) {
   if (!firebaseState.enabled) return;
@@ -925,36 +929,29 @@ function bulkDelete() {
     rows.forEach(row => row.delete());
     refreshStats();
     refreshKPIs();
-    table.refreshFilter();
+    applyFilters();
   }
 }
 
-// --- Column manager --------------------------------------------------------
-
-function renderColumnManager() {
-  if (!ui.columnManager) return;
-  const columns = table.getColumns();
-  ui.columnManager.innerHTML = '';
-  columns.forEach(column => {
-    const def = column.getDefinition();
-    if (!def.field || def.field.startsWith('_')) return;
-    const wrapper = document.createElement('label');
-    wrapper.className = 'column-toggle';
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = column.isVisible();
-    input.addEventListener('change', () => {
-      if (input.checked) column.show();
-      else column.hide();
+function handleRowDelete(row) {
+  if (!row) return;
+  if (!confirm('Delete this guest?')) return;
+  if (firebaseState.enabled) {
+    deleteFromFirestore(row.getData().id).catch(err => {
+      console.error('Delete failed', err);
+      alert('Failed to delete guest. Check console for details.');
     });
-    const span = document.createElement('span');
-    span.textContent = def.title;
-    wrapper.append(input, span);
-    ui.columnManager.appendChild(wrapper);
-  });
+  } else {
+    row.delete();
+    refreshStats();
+    refreshKPIs();
+    applyFilters();
+  }
 }
 
-// --- CSV mapping -----------------------------------------------------------
+ui.del?.addEventListener('click', bulkDelete);
+
+// --- CSV helpers -----------------------------------------------------------
 
 const csvFieldMap = new Map([
   ['Actually Invited?', 'actuallyInvited'],
@@ -997,53 +994,21 @@ function mapCsvRow(row) {
     if (row[key] !== undefined) record[field] = row[key];
   });
   record.id = `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  record.actuallyInvited = toBool(record.actuallyInvited);
+  record.plusOneInvited = toBool(record.plusOneInvited);
+  record.plusOneAttending = toBool(record.plusOneAttending);
+  record.guestAttending = toBool(record.guestAttending);
+  record.numberOfChildren = toNumber(record.numberOfChildren);
+  record.childrenAttending = toNumber(record.childrenAttending);
+  record.totalInParty = toNumber(record.totalInParty);
+  record.child1Age = toNumberOrNull(record.child1Age);
+  record.child2Age = toNumberOrNull(record.child2Age);
+  record.child3Age = toNumberOrNull(record.child3Age);
+  record.tableNumber = toNumber(record.tableNumber);
+  record.inviteCategory = (record.inviteCategory || 'family').toLowerCase();
+  record.seatingPriority = (record.seatingPriority || 'standard').toLowerCase();
+  record.rsvpStatus = (record.rsvpStatus || 'none').toLowerCase();
   return record;
-}
-
-// --- Utilities -------------------------------------------------------------
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s] || s));
-}
-
-function titleCase(str = '') {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function fallbackPartySize(row) {
-  const base = (row.guestAttending ? 1 : 0) + (row.plusOneAttending ? 1 : 0) + (Number(row.childrenAttending) || 0);
-  if (base > 0) return base;
-  return 1 + (row.plusOneInvited ? 1 : 0) + (Number(row.numberOfChildren) || 0);
-}
-
-function rsvpFormatter(cell) {
-  const value = (cell.getValue() || 'none').toLowerCase();
-  const map = {
-    yes: { text: 'Yes', cls: 'badge badge-yes' },
-    no: { text: 'No', cls: 'badge badge-no' },
-    maybe: { text: 'Maybe', cls: 'badge badge-maybe' },
-    none: { text: 'No response', cls: 'badge badge-none' },
-  };
-  const { text, cls } = map[value] || map.none;
-  return `<span class="${cls}">${text}</span>`;
-}
-
-function toBool(value) {
-  if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return false;
-  const str = String(value).trim().toLowerCase();
-  return ['true', 'yes', 'y', '1', '✓', 'checked', 'on'].includes(str);
-}
-
-function toNumber(value) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
-}
-
-function toNumberOrNull(value) {
-  if (value === '' || value === undefined || value === null) return null;
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
 }
 
 function csvParse(text) {
@@ -1092,3 +1057,38 @@ function csvParse(text) {
   const header = (rows.shift() || []).map(h => h.trim());
   return rows.filter(r => r.length).map(r => Object.fromEntries(header.map((h, idx) => [h, r[idx]])));
 }
+
+// --- Utilities -------------------------------------------------------------
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s] || s));
+}
+
+function titleCase(str = '') {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function fallbackPartySize(row) {
+  const base = (row.guestAttending ? 1 : 0) + (row.plusOneAttending ? 1 : 0) + (Number(row.childrenAttending) || 0);
+  if (base > 0) return base;
+  return 1 + (row.plusOneInvited ? 1 : 0) + (Number(row.numberOfChildren) || 0);
+}
+
+function toBool(value) {
+  if (typeof value === 'boolean') return value;
+  if (value === undefined || value === null) return false;
+  const str = String(value).trim().toLowerCase();
+  return ['true', 'yes', 'y', '1', '✓', 'checked', 'on'].includes(str);
+}
+
+function toNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function toNumberOrNull(value) {
+  if (value === '' || value === undefined || value === null) return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
